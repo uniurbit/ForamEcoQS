@@ -1,0 +1,11 @@
+AreaID;AreaName;EnvironmentType;Region;Description;Reference;DOI;UsedForIndices
+1;Mediterranean Sea;Marine Shelf;Mediterranean;Mediterranean coastal and shelf environments with temperate to warm waters;Jorissen et al. (2018);10.1016/j.marmicro.2017.12.006;Foram-AMBI, TSI-Med, FSI
+2;Mediterranean Lagoons;Transitional Waters;Mediterranean;Mediterranean coastal lagoons and transitional waters with variable salinity;Bouchet et al. (2021);10.1016/j.marpolbul.2021.112071;Foram-AMBI, FSI
+3;Atlantic European Coast;Marine Shelf;Atlantic;Eastern Atlantic coastal environments including Bay of Biscay and North Sea;Bouchet et al. (2012);10.1016/j.ecolind.2012.03.011;Foram-AMBI
+4;North Sea;Marine Shelf;Atlantic;North Sea and Norwegian coast, boreal environments;Alve et al. (2016);10.1016/j.marmicro.2015.11.001;Foram-AMBI, NQIf
+5;Gulf of Mexico;Marine Shelf;Atlantic;Gulf of Mexico subtropical to tropical environments;O'Malley et al. (2021);10.1016/j.ecolind.2020.107049;Foram-AMBI
+6;South Atlantic;Marine Shelf;Atlantic;South Atlantic coastal and transitional water environments;Bouchet et al. (2025);10.5194/jm-44-237-2025;Foram-AMBI
+7;Norwegian Fjords;Fjord;Atlantic;Norwegian fjord systems with stratified water columns;Alve et al. (2019);10.1016/j.ecolind.2018.08.037;Foram-AMBI, NQIf
+8;Tropical Coral Reefs;Coral Reef;Tropical;Tropical and subtropical coral reef environments;Hallock et al. (2003);10.1023/A:1021337310386;FoRAM Index
+9;Deep-Sea Bathyal;Deep-Sea;Global;Bathyal and abyssal environments;Jorissen et al. (1995);10.1016/0377-8398(95)00047-X;Foram-AMBI
+10;Adriatic Sea;Marine Shelf;Mediterranean;Adriatic Sea coastal and shelf environments;Barras et al. (2014);10.1016/j.ecolind.2013.09.028;TSI-Med, Foram-AMBI
