@@ -308,6 +308,28 @@ dotnet run --project ForamEcoQS
 
 If no command-line arguments are passed, the application starts in GUI mode, shows the splash screen, and then opens the main window.
 
+### Create and Run a Standalone Windows Executable
+
+To run the application without `dotnet run` (and without installing the .NET runtime on the destination PC), publish a self-contained executable. Run this command from the repository root on a 64-bit Windows machine:
+
+```powershell
+dotnet publish ForamEcoQS\ForamEcoQS.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\publish\win-x64
+```
+
+The generated application is `publish\win-x64\ForamEcoQS.exe`. Start the graphical interface directly with:
+
+```powershell
+.\publish\win-x64\ForamEcoQS.exe
+```
+
+To distribute it, copy the complete `publish\win-x64` directory, not only the `.exe`: the bundled `.csv` and `.xls` reference databanks in that directory are required for indices that use reference lists. For a 32-bit destination, replace `win-x64` with `win-x86` in both the publish command and output path.
+
+The executable also accepts the same CLI arguments as `dotnet run`. For example:
+
+```powershell
+.\publish\win-x64\ForamEcoQS.exe -i "C:\Data\input.xlsx" -index=all -list jorissen -o "C:\Data\results.xlsx" -mud=50
+```
+
 ### Run the CLI
 
 ```bash
