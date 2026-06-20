@@ -1,6 +1,6 @@
 # ForamEcoQS
 
-ForamEcoQS is a Windows desktop application for ecological quality assessment based on benthic foraminifera. It targets `.NET 6`, uses Windows Forms for the graphical interface, and can also run in command-line mode. The software calculates multiple biotic and diversity indices from species-by-sample abundance matrices and assigns Ecological Quality Status (EQS) classes where implemented.
+ForamEcoQS is a Windows desktop application for ecological quality assessment based on benthic foraminifera. It targets `.NET 10`, uses Windows Forms for the graphical interface, and can also run in command-line mode. The software calculates multiple biotic and diversity indices from species-by-sample abundance matrices and assigns Ecological Quality Status (EQS) classes where implemented.
 
 ## Authors and Affiliations
 
@@ -221,9 +221,8 @@ Interpretation:
 
 ## Requirements
 
-- `.NET 6 SDK` for build and run from source.
-- Windows for normal GUI execution.
-- A Windows-capable environment for the `net6.0-windows` target.
+- [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0) for build and run from source. Confirm the installation with `dotnet --list-sdks`; a `10.0.x` entry is required.
+- Windows 10 or Windows 11 for normal GUI execution. The application target is `net10.0-windows`.
 - Bundled reference `.csv` and `.xls` files available at runtime.
 
 NuGet packages used by the project:
@@ -237,8 +236,50 @@ NuGet packages used by the project:
 
 Important build note:
 
-- The project targets `net6.0-windows`.
+- The project targets `net10.0-windows`.
 - On non-Windows systems, `dotnet build` can fail with `NETSDK1100` unless Windows targeting is enabled explicitly.
+
+## Windows Installation Tutorials
+
+These instructions build and run the application from this repository. They apply to 64-bit Windows installations; use PowerShell or Windows Terminal.
+
+### Windows 11
+
+1. Install the [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0), then close and reopen the terminal so its `PATH` is refreshed.
+2. Clone the repository and enter its directory:
+
+   ```powershell
+   git clone https://github.com/uniurbit/ForamEcoQS.git
+   cd ForamEcoQS
+   ```
+
+3. Confirm that an SDK in the `10.0.x` series is available:
+
+   ```powershell
+   dotnet --list-sdks
+   ```
+
+4. Restore, build, and start the GUI:
+
+   ```powershell
+   dotnet restore ForamEcoQS.sln
+   dotnet build ForamEcoQS.sln -c Release
+   dotnet run --project ForamEcoQS -c Release
+   ```
+
+### Windows 10
+
+1. Install all pending Windows updates, then install the [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0).
+2. Open a new PowerShell window and verify the SDK:
+
+   ```powershell
+   dotnet --info
+   ```
+
+   The output must list a `10.0.x` SDK.
+3. Follow steps 2–4 in the Windows 11 tutorial above. The commands and expected behavior are identical on Windows 10.
+
+For users who only need to run a future packaged release, install the matching .NET Desktop Runtime rather than the SDK. Building from this source repository always requires the SDK.
 
 ## Build
 
@@ -319,6 +360,33 @@ Example:
 dotnet run --project ForamEcoQS -- -i data.xlsx -index=all -list jorissen -o results.xlsx -mud=50
 ```
 
+## Worked CLI Verification Example
+
+Use this small, deterministic example to verify that the CLI, input parsing, and Excel export work after installation.
+
+1. Create an Excel workbook named `verification-input.xlsx`. Its first worksheet must contain the following table, with the first row used as headers:
+
+   | Species | Sample_A | Sample_B |
+   | --- | ---: | ---: |
+   | Taxon alpha | 10 | 0 |
+   | Taxon beta | 20 | 25 |
+   | Taxon gamma | 0 | 5 |
+
+2. From the repository root, run:
+
+   ```powershell
+   dotnet run --project ForamEcoQS -c Release -- -i .\verification-input.xlsx "-index=Species Richness (S),Total Abundance (N)" -o .\verification-results.xlsx
+   ```
+
+3. The command must finish with `Results saved.` and `Done.`. Open the `Results` worksheet in `verification-results.xlsx` and verify these values:
+
+   | Index | Sample_A | Sample_B |
+   | --- | ---: | ---: |
+   | Species Richness (S) | 2 | 2 |
+   | Total Abundance (N) | 30 | 30 |
+
+This example intentionally uses indices that do not require a reference databank. To calculate reference-list-dependent indices such as `Foram-AMBI`, add `-list jorissen` (or another supported list) to the command.
+
 ## Input File Format
 
 The expected input layout is a species-by-sample matrix:
@@ -328,6 +396,18 @@ The expected input layout is a species-by-sample matrix:
 - Positive numeric values are treated as abundances.
 
 CLI mode supports Excel `.xls` and `.xlsx` files and reads the first worksheet. GUI mode also supports CSV import.
+
+## Troubleshooting
+
+| Symptom | Cause | Resolution |
+| --- | --- | --- |
+| `dotnet` is not recognized | The SDK is not installed or the current terminal has an outdated `PATH`. | Install the .NET 10 SDK, close every terminal window, open a new PowerShell window, and run `dotnet --info`. |
+| `NETSDK1045` or an error saying `net10.0-windows` is unsupported | An older SDK is being used. | Install .NET 10 SDK and ensure `dotnet --list-sdks` shows `10.0.x`. Remove or update any repository/user `global.json` that pins an older SDK. |
+| `NETSDK1100` on macOS or Linux | The project is Windows-targeted. | Build with `-p:EnableWindowsTargeting=true`; run the WinForms GUI on Windows. |
+| `Error: Input file ... not found` | The `-i` path is incorrect or not quoted. | Use an absolute path or quote a path containing spaces, for example `-i "C:\Data\input file.xlsx"`. |
+| `Error: Input file is empty or invalid` | The file is not a readable Excel workbook, has no rows, or its first worksheet has no header row. | Save the data as `.xls` or `.xlsx`, place species names in the first column, and include a header row. |
+| `Error: Could not load reference databank` | The list name is invalid or the application is not run from its build/project output. | Use one of the documented list names (for example `jorissen`) and run with `dotnet run --project ForamEcoQS` so bundled data files are copied to the output directory. |
+| Excel export fails because the file is in use | `results.xlsx` is open in Excel or another application. | Close the file, choose a different output name, and rerun the command. |
 
 ## Output and Exports
 
