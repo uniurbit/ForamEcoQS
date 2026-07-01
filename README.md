@@ -498,3 +498,4 @@ The application includes:
 - Hallock P. et al. (2003). Original FoRAM Index.
 - Prazeres M. et al. (2020). FoRAM Index revisit.
 - Mojtahid M. et al. (2006). FIEI.
+- WoRMS Editorial Board. World Register of Marine Species. Available from https://www.marinespecies.org at VLIZ. doi:10.14284/170.
