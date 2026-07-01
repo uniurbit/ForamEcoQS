@@ -347,7 +347,7 @@ namespace ForamEcoQS
                     // Extract mud row if present (works for both Excel and CSV)
                     if (dataGridView1.DataSource is DataTable loadedDataTable)
                     {
-                        extractedMudPercentages = ExtractMudRowFromDataTable(loadedDataTable);
+                        extractedMudPercentages = SpecializedDatabankLoader.ExtractMudRowFromDataTable(loadedDataTable);
                         if (extractedMudPercentages != null && extractedMudPercentages.Count > 0)
                         {
                             // Mud row was found and extracted - the DataTable is already updated
@@ -1623,84 +1623,6 @@ namespace ForamEcoQS
                                row.DefaultCellStyle.BackColor != Color.Red));
         }
 
-        /// <summary>
-        /// Extracts mud percentage row from a DataTable if present.
-        /// Looks for rows with first column matching "mud", "Mud", "MUD", "mud (%)", etc. (case insensitive).
-        /// If found, extracts values for each sample column and removes the row from the DataTable.
-        /// </summary>
-        /// <param name="dataTable">The DataTable to process</param>
-        /// <returns>Dictionary of sample name to mud percentage, or null if no mud row found</returns>
-        private Dictionary<string, double> ExtractMudRowFromDataTable(DataTable dataTable)
-        {
-            if (dataTable == null || dataTable.Rows.Count == 0 || dataTable.Columns.Count <= 1)
-                return null;
-
-            // Patterns to match for mud row (case insensitive)
-            string[] mudPatterns = { "mud", "mud (%)", "mud(%)", "% mud", "%mud", "fango", "fango (%)" };
-
-            // Find the mud row
-            DataRow mudRow = null;
-            int mudRowIndex = -1;
-
-            for (int i = 0; i < dataTable.Rows.Count; i++)
-            {
-                var row = dataTable.Rows[i];
-                string firstCellValue = row[0]?.ToString()?.Trim() ?? "";
-
-                // Check if this row matches any mud pattern (case insensitive)
-                foreach (var pattern in mudPatterns)
-                {
-                    if (string.Equals(firstCellValue, pattern, StringComparison.OrdinalIgnoreCase))
-                    {
-                        mudRow = row;
-                        mudRowIndex = i;
-                        break;
-                    }
-                }
-
-                if (mudRow != null)
-                    break;
-            }
-
-            if (mudRow == null)
-                return null;
-
-            // Extract mud percentages for each sample column (skip first column which is species/row names)
-            var mudPercentages = new Dictionary<string, double>();
-
-            for (int colIndex = 1; colIndex < dataTable.Columns.Count; colIndex++)
-            {
-                string sampleName = dataTable.Columns[colIndex].ColumnName;
-                double mudValue = 50.0; // Default value
-
-                var cellValue = mudRow[colIndex];
-                if (cellValue != null && cellValue != DBNull.Value)
-                {
-                    string valueStr = cellValue.ToString().Trim();
-                    // Remove % sign if present
-                    valueStr = valueStr.Replace("%", "").Trim();
-
-                    if (double.TryParse(valueStr, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out double parsedValue))
-                    {
-                        // Clamp to valid range 0-100
-                        mudValue = Math.Max(0, Math.Min(100, parsedValue));
-                    }
-                    else if (double.TryParse(valueStr, out parsedValue))
-                    {
-                        mudValue = Math.Max(0, Math.Min(100, parsedValue));
-                    }
-                }
-
-                mudPercentages[sampleName] = mudValue;
-            }
-
-            // Remove the mud row from the DataTable
-            dataTable.Rows.RemoveAt(mudRowIndex);
-            dataTable.AcceptChanges();
-
-            return mudPercentages;
-        }
         private void DataGridView1_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)

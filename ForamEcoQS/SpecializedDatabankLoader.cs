@@ -16,6 +16,87 @@ namespace ForamEcoQS
     public class SpecializedDatabankLoader
     {
         /// <summary>
+        /// Extracts a mud percentage row from a DataTable if present, so it is used for TSI-Med
+        /// instead of being treated as a species abundance row. Looks for a first-column value
+        /// matching "mud", "mud (%)", "% mud", "fango", etc. (case insensitive). If found, extracts
+        /// per-sample values from that row and removes the row from the DataTable in place.
+        /// Shared between the GUI (Form1) and the CLI (CliRunner) so both accept the same input format.
+        /// </summary>
+        /// <param name="dataTable">The DataTable to process (mutated in place if a mud row is found)</param>
+        /// <returns>Dictionary of sample name to mud percentage, or null if no mud row found</returns>
+        public static Dictionary<string, double> ExtractMudRowFromDataTable(DataTable dataTable)
+        {
+            if (dataTable == null || dataTable.Rows.Count == 0 || dataTable.Columns.Count <= 1)
+                return null;
+
+            // Patterns to match for mud row (case insensitive)
+            string[] mudPatterns = { "mud", "mud (%)", "mud(%)", "% mud", "%mud", "fango", "fango (%)" };
+
+            // Find the mud row
+            DataRow mudRow = null;
+            int mudRowIndex = -1;
+
+            for (int i = 0; i < dataTable.Rows.Count; i++)
+            {
+                var row = dataTable.Rows[i];
+                string firstCellValue = row[0]?.ToString()?.Trim() ?? "";
+
+                // Check if this row matches any mud pattern (case insensitive)
+                foreach (var pattern in mudPatterns)
+                {
+                    if (string.Equals(firstCellValue, pattern, StringComparison.OrdinalIgnoreCase))
+                    {
+                        mudRow = row;
+                        mudRowIndex = i;
+                        break;
+                    }
+                }
+
+                if (mudRow != null)
+                    break;
+            }
+
+            if (mudRow == null)
+                return null;
+
+            // Extract mud percentages for each sample column (skip first column which is species/row names)
+            var mudPercentages = new Dictionary<string, double>();
+
+            for (int colIndex = 1; colIndex < dataTable.Columns.Count; colIndex++)
+            {
+                string sampleName = dataTable.Columns[colIndex].ColumnName;
+                double mudValue = 50.0; // Default value
+
+                var cellValue = mudRow[colIndex];
+                if (cellValue != null && cellValue != DBNull.Value)
+                {
+                    string valueStr = cellValue.ToString().Trim();
+                    // Remove % sign if present
+                    valueStr = valueStr.Replace("%", "").Trim();
+
+                    if (double.TryParse(valueStr, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out double parsedValue))
+                    {
+                        // Clamp to valid range 0-100
+                        mudValue = Math.Max(0, Math.Min(100, parsedValue));
+                    }
+                    else if (double.TryParse(valueStr, out parsedValue))
+                    {
+                        mudValue = Math.Max(0, Math.Min(100, parsedValue));
+                    }
+                }
+
+                mudPercentages[sampleName] = mudValue;
+            }
+
+            // Remove the mud row from the DataTable
+            dataTable.Rows.RemoveAt(mudRowIndex);
+            dataTable.AcceptChanges();
+
+            return mudPercentages;
+        }
+
+        /// <summary>
         /// Loads FSI databank with Sensitive (S) and Tolerant (T) categories
         /// Based on Dimiza et al. (2016) classification
         /// Checks for user custom databank first, then falls back to original

@@ -51,6 +51,15 @@ namespace ForamEcoQS
                     return 1;
                 }
 
+                // Extract an optional per-sample mud (%) row (e.g. "Mud (%)", "Fango") so it is used
+                // for TSI-Med instead of being mistakenly counted as a species abundance row.
+                var mudPercentagesPerSample = SpecializedDatabankLoader.ExtractMudRowFromDataTable(inputData);
+                if (mudPercentagesPerSample != null)
+                {
+                    Log("Found a mud (%) row in the input file; using its per-sample values for TSI-Med " +
+                        $"(overrides -mud={options.MudPercentage} for samples it covers).");
+                }
+
                 Log($"Loaded {inputData.Rows.Count} species rows and {inputData.Columns.Count - 1} samples.");
 
                 // Load Reference Databank
@@ -80,7 +89,7 @@ namespace ForamEcoQS
 
                 // Calculate Indices
                 Log("Calculating indices...");
-                DataTable results = CalculateIndices(inputData, refDatabank, options);
+                DataTable results = CalculateIndices(inputData, refDatabank, options, mudPercentagesPerSample);
                 Log("Indices calculated.");
 
                 // Output
@@ -279,7 +288,8 @@ namespace ForamEcoQS
             }
         }
 
-        private static DataTable CalculateIndices(DataTable inputData, DataTable refDatabank, CliOptions options)
+        private static DataTable CalculateIndices(DataTable inputData, DataTable refDatabank, CliOptions options,
+            Dictionary<string, double> mudPercentagesPerSample)
         {
             // 1. Determine selected indices
             List<string> selectedIndices = new List<string>();
@@ -362,23 +372,31 @@ namespace ForamEcoQS
                 int colIndex = i + 1; // Column index in inputData
                 string sampleName = inputData.Columns[colIndex].ColumnName;
 
-                // Extract abundances
-                List<double> abundances = new List<double>();
+                // Extract abundances, aggregating rows that share the same species name within
+                // this sample (summing their abundances) so a taxon entered on multiple rows
+                // (e.g. duplicate entries, split size fractions) is counted once, not as several
+                // distinct "species" - this matters for richness/diversity as well as eco-groups.
                 Dictionary<string, double> speciesAbundances = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                List<double> unnamedAbundances = new List<double>();
 
                 foreach (DataRow row in inputData.Rows)
                 {
                     string species = row[0]?.ToString()?.Trim();
                     if (double.TryParse(row[colIndex]?.ToString(), out double value) && value > 0)
                     {
-                        abundances.Add(value);
                         if (!string.IsNullOrEmpty(species))
                         {
-                            speciesAbundances[species] = value;
+                            speciesAbundances[species] = speciesAbundances.TryGetValue(species, out double existing)
+                                ? existing + value
+                                : value;
+                        }
+                        else
+                        {
+                            unnamedAbundances.Add(value);
                         }
                     }
                 }
-                double[] abundArray = abundances.ToArray();
+                double[] abundArray = speciesAbundances.Values.Concat(unnamedAbundances).ToArray();
 
                 // Calcs
                 IndicesResult r = new IndicesResult();
@@ -440,10 +458,13 @@ namespace ForamEcoQS
                     else indexValues["FSI"][i] = double.NaN;
                 }
 
-                // TSI-Med (Assume 50% mud if not provided)
+                // TSI-Med (uses the per-sample mud row if the input file had one, otherwise -mud=)
                 if (IsSelected("TSI-Med"))
                 {
-                    double mudPct = options.MudPercentage;
+                    double mudPct = (mudPercentagesPerSample != null &&
+                                     mudPercentagesPerSample.TryGetValue(sampleName, out double sampleMud))
+                        ? sampleMud
+                        : options.MudPercentage;
                     if (tsiMedDatabankAvailable && tsiMedDatabank.Count > 0)
                     {
                         var (tolerantPct, _) = SpecializedDatabankLoader.CalculateTSIMedPercentages(speciesAbundances, tsiMedDatabank);

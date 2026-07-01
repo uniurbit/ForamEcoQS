@@ -486,24 +486,32 @@ namespace ForamEcoQS
                 result.TSIMed_ThresholdType = selectedTSIThreshold;
                 result.ExpHbc_ThresholdType = selectedExpHbcThreshold;
 
-                // Extract abundances
-                var abundances = new List<double>();
+                // Extract abundances, aggregating rows that share the same species name within
+                // this sample (summing their abundances) so a taxon entered on multiple rows
+                // (e.g. duplicate entries, split size fractions) is counted once, not as several
+                // distinct "species" - this matters for richness/diversity as well as eco-groups.
                 var speciesAbundances = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                var unnamedAbundances = new List<double>();
 
                 foreach (DataRow row in sourceData.Rows)
                 {
                     string species = row[0]?.ToString()?.Trim();
                     if (double.TryParse(row[col]?.ToString(), out double value) && value > 0)
                     {
-                        abundances.Add(value);
                         if (!string.IsNullOrEmpty(species))
                         {
-                            speciesAbundances[species] = value;
+                            speciesAbundances[species] = speciesAbundances.TryGetValue(species, out double existing)
+                                ? existing + value
+                                : value;
+                        }
+                        else
+                        {
+                            unnamedAbundances.Add(value);
                         }
                     }
                 }
 
-                double[] abundArray = abundances.ToArray();
+                double[] abundArray = speciesAbundances.Values.Concat(unnamedAbundances).ToArray();
 
                 // ========== DIVERSITY INDICES ==========
                 if (IsSelected("H'ln")) result.Shannon_Ln = BioticIndicesCalculator.CalculateShannonLn(abundArray);
