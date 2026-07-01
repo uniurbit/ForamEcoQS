@@ -561,6 +561,20 @@ namespace ForamEcoQS
 
         private static void SaveToExcel(DataTable results, string outputPath)
         {
+            // Excel (and ClosedXML) cannot represent NaN/Infinity - indices that could not be
+            // calculated (e.g. eco-group-based indices when no -list was given) are left as
+            // double.NaN. Replace them with a blank cell instead of letting InsertTable throw.
+            foreach (DataRow row in results.Rows)
+            {
+                for (int col = 1; col < results.Columns.Count; col++)
+                {
+                    if (row[col] is double value && (double.IsNaN(value) || double.IsInfinity(value)))
+                    {
+                        row[col] = DBNull.Value;
+                    }
+                }
+            }
+
             using (var workbook = new XLWorkbook())
             {
                 var worksheet = workbook.Worksheets.Add("Results");

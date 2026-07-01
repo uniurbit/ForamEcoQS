@@ -61,6 +61,19 @@ ForamEcoQS supports a practical analysis workflow:
 - Geographic Areas Database.
 - User Custom Lists Manager.
 - Ecological-group override support for taxa assignments.
+- Export and import ecological-group overrides as a JSON file, so they can be shared with collaborators or committed to version control alongside a dataset.
+
+### WoRMS Species Verification
+
+Species that are not found in the selected local reference databank can optionally be checked against the [WoRMS](https://www.marinespecies.org/) (World Register of Marine Species) online REST API. This is an opt-in feature that requires an internet connection.
+
+For each unmatched name, WoRMS lookup can:
+
+- Confirm it is a recognized, valid marine taxon even though it is absent from the local databank (in the GUI, such rows are highlighted orange instead of red, and are no longer removed by `Clean and Normalize`).
+- Detect likely typos via fuzzy/phonetic name matching.
+- Surface the currently accepted scientific name when the entered name is an outdated synonym (e.g. a species that has since been reclassified into a different genus).
+
+In the GUI, enable it via the **"Verify unmatched species against WoRMS"** checkbox in `Index Calculation Settings` (disabled by default). In CLI mode, pass the `-worms` flag (see below). Without WoRMS verification, the CLI still always reports which species were excluded from eco-group-based indices because they were not found in the reference databank.
 
 ### EQS Comparison Tools
 
@@ -343,6 +356,7 @@ Supported options:
 - `-list LIST_NAME`
 - `-o OUTPUT_FILE`
 - `-mud=VALUE`
+- `-worms` (verify species not found in the reference databank against the WoRMS online database; requires internet access)
 - `-help`
 - `--help`
 - `/?`
@@ -380,6 +394,12 @@ Example:
 
 ```bash
 dotnet run --project ForamEcoQS -- -i data.xlsx -index=all -list jorissen -o results.xlsx -mud=50
+```
+
+Example with WoRMS verification of unmatched species:
+
+```bash
+dotnet run --project ForamEcoQS -- -i data.xlsx -index=all -list jorissen -o results.xlsx -worms
 ```
 
 ## Worked CLI Verification Example
@@ -458,8 +478,9 @@ The application includes:
 - The GUI is Windows-oriented because the project is a Windows Forms application.
 - Some indices depend on the selected databank and species classification coverage.
 - TSI-Med depends on mud percentage and the selected reference curve.
-- FoRAM Index is mainly meaningful for tropical or subtropical reef settings.
+- FoRAM Index is mainly meaningful for tropical or subtropical reef settings; the software warns when too little of a sample's assemblage matches a FoRAM functional group for the index to be meaningful.
 - `Azoic` is treated separately from `Bad` in several EQS outputs.
+- WoRMS species verification (GUI checkbox or `-worms` in the CLI) is optional and requires internet access; results depend on the availability and currency of the WoRMS online database at the time of the query.
 
 ## References
 
