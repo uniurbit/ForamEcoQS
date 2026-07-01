@@ -24,6 +24,7 @@ namespace ForamEcoQS
         public double FSIReferenceValue { get; private set; } = 10.0;
         public double ExpHbcReferenceValue { get; private set; } = 20.0;
         public bool CalculateEQR { get; private set; } = false;
+        public bool UseWormsVerification { get; private set; } = false;
 
         // Controls
         private ComboBox fambiThresholdCombo;
@@ -32,6 +33,7 @@ namespace ForamEcoQS
         private ComboBox expHbcThresholdCombo;
         private CheckBox jorissenListCheckbox;
         private CheckBox calculateEqrCheckbox;
+        private CheckBox wormsVerificationCheckbox;
         private NumericUpDown fsiRefNumeric;
         private NumericUpDown expHbcRefNumeric;
         private Label fambiDescLabel;
@@ -44,7 +46,8 @@ namespace ForamEcoQS
 
         public IndexSettingsForm(FAMBIThresholdType currentFAMBI, TSIReferenceType currentTSI,
             TSIThresholdType currentTSIThreshold, ExpHbcThresholdType currentExpHbcThreshold,
-            bool useJorissen, bool calcEQR, double fsiRef, double expHbcRef) : this()
+            bool useJorissen, bool calcEQR, double fsiRef, double expHbcRef,
+            bool useWormsVerification = false) : this()
         {
             fambiThresholdCombo.SelectedIndex = (int)currentFAMBI;
             tsiReferenceCombo.SelectedIndex = (int)currentTSI;
@@ -54,6 +57,7 @@ namespace ForamEcoQS
             calculateEqrCheckbox.Checked = calcEQR;
             fsiRefNumeric.Value = (decimal)fsiRef;
             expHbcRefNumeric.Value = (decimal)expHbcRef;
+            wormsVerificationCheckbox.Checked = useWormsVerification;
 
             FAMBIThreshold = currentFAMBI;
             TSIReference = currentTSI;
@@ -63,12 +67,13 @@ namespace ForamEcoQS
             CalculateEQR = calcEQR;
             FSIReferenceValue = fsiRef;
             ExpHbcReferenceValue = expHbcRef;
+            UseWormsVerification = useWormsVerification;
         }
 
         private void InitializeComponent()
         {
             this.Text = "Index Calculation Settings";
-            this.Size = new Size(550, 640);
+            this.Size = new Size(550, 740);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -279,6 +284,36 @@ namespace ForamEcoQS
             this.Controls.Add(eqrGroup);
             yPos += 185;
 
+            // ============ SPECIES IDENTIFICATION (WORMS) ============
+            var wormsGroup = new GroupBox
+            {
+                Text = "Species Identification",
+                Location = new Point(20, yPos),
+                Size = new Size(495, 90)
+            };
+
+            wormsVerificationCheckbox = new CheckBox
+            {
+                Text = "Verify unmatched species against WoRMS (World Register of Marine Species)",
+                Location = new Point(15, 25),
+                Size = new Size(465, 20),
+                Checked = false
+            };
+            wormsVerificationCheckbox.CheckedChanged += WormsVerificationCheckbox_CheckedChanged;
+
+            var wormsInfoLabel = new Label
+            {
+                Text = "Requires an internet connection. Species not found in the loaded databank are looked up\n" +
+                       "at marinespecies.org to confirm they are valid marine taxa and to suggest the accepted name.",
+                Location = new Point(15, 48),
+                Size = new Size(465, 36),
+                Font = new Font(Font.FontFamily, 8f)
+            };
+
+            wormsGroup.Controls.AddRange(new Control[] { wormsVerificationCheckbox, wormsInfoLabel });
+            this.Controls.Add(wormsGroup);
+            yPos += 100;
+
             // ============ BUTTONS ============
             var okButton = new Button
             {
@@ -355,6 +390,11 @@ namespace ForamEcoQS
             expHbcRefNumeric.Enabled = calculateEqrCheckbox.Checked;
         }
 
+        private void WormsVerificationCheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            UseWormsVerification = wormsVerificationCheckbox.Checked;
+        }
+
         private void OkButton_Click(object sender, EventArgs e)
         {
             FAMBIThreshold = (FAMBIThresholdType)fambiThresholdCombo.SelectedIndex;
@@ -365,6 +405,7 @@ namespace ForamEcoQS
             CalculateEQR = calculateEqrCheckbox.Checked;
             FSIReferenceValue = (double)fsiRefNumeric.Value;
             ExpHbcReferenceValue = (double)expHbcRefNumeric.Value;
+            UseWormsVerification = wormsVerificationCheckbox.Checked;
         }
 
         private string GetFAMBIDescription(FAMBIThresholdType type)

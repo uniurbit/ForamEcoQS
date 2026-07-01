@@ -65,6 +65,46 @@ namespace ForamEcoQS
             return new Dictionary<string, int>(overrides, StringComparer.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// Exports all overrides to a standalone JSON file (species name -> ecological group),
+        /// so they can be shared with collaborators or committed to version control alongside a dataset.
+        /// </summary>
+        public void ExportToFile(string exportPath)
+        {
+            string json = JsonSerializer.Serialize(overrides, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(exportPath, json);
+        }
+
+        /// <summary>
+        /// Imports overrides from a previously exported JSON file.
+        /// </summary>
+        /// <param name="importPath">Path to the JSON file to import.</param>
+        /// <param name="merge">If true, imported entries are added to the existing overrides
+        /// (overwriting entries with the same species name). If false, existing overrides are replaced entirely.</param>
+        /// <returns>The number of override entries imported.</returns>
+        public int ImportFromFile(string importPath, bool merge)
+        {
+            string json = File.ReadAllText(importPath);
+            var imported = JsonSerializer.Deserialize<Dictionary<string, int>>(json)
+                           ?? new Dictionary<string, int>();
+
+            if (!merge)
+            {
+                overrides = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            foreach (var kvp in imported)
+            {
+                if (kvp.Value >= 1 && kvp.Value <= 5 && !string.IsNullOrWhiteSpace(kvp.Key))
+                {
+                    overrides[kvp.Key.Trim()] = kvp.Value;
+                }
+            }
+
+            Save();
+            return imported.Count;
+        }
+
         private void Save()
         {
             try

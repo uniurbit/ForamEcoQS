@@ -100,6 +100,8 @@ namespace ForamEcoQS
             fsiDatabankManagerToolStripMenuItem = new ToolStripMenuItem();
             foramAMBIDatabankManagerToolStripMenuItem = new ToolStripMenuItem();
             geographicAreasDatabankToolStripMenuItem = new ToolStripMenuItem();
+            exportOverridesToolStripMenuItem = new ToolStripMenuItem();
+            importOverridesToolStripMenuItem = new ToolStripMenuItem();
             indexSettingsToolStripMenuItem = new ToolStripMenuItem();
             menuStrip1.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, editDataToolStripMenuItem, undoToolStripMenuItem, advancedIndicesToolStripMenuItem, toolsToolStripMenuItem, aboutToolStripMenuItem });
             menuStrip1.Location = new Point(0, 0);
@@ -232,7 +234,7 @@ namespace ForamEcoQS
             // toolsToolStripMenuItem
             //
             userCustomListsManagerToolStripMenuItem = new ToolStripMenuItem();
-            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { fsiDatabankManagerToolStripMenuItem, foramAMBIDatabankManagerToolStripMenuItem, geographicAreasDatabankToolStripMenuItem, userCustomListsManagerToolStripMenuItem, new ToolStripSeparator(), indexSettingsToolStripMenuItem });
+            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { fsiDatabankManagerToolStripMenuItem, foramAMBIDatabankManagerToolStripMenuItem, geographicAreasDatabankToolStripMenuItem, userCustomListsManagerToolStripMenuItem, new ToolStripSeparator(), exportOverridesToolStripMenuItem, importOverridesToolStripMenuItem, new ToolStripSeparator(), indexSettingsToolStripMenuItem });
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new Size(58, 24);
             toolsToolStripMenuItem.Text = "Tools";
@@ -243,6 +245,20 @@ namespace ForamEcoQS
             userCustomListsManagerToolStripMenuItem.Size = new Size(280, 26);
             userCustomListsManagerToolStripMenuItem.Text = "User Custom Lists Manager...";
             userCustomListsManagerToolStripMenuItem.Click += userCustomListsManagerToolStripMenuItem_Click;
+            //
+            // exportOverridesToolStripMenuItem
+            //
+            exportOverridesToolStripMenuItem.Name = "exportOverridesToolStripMenuItem";
+            exportOverridesToolStripMenuItem.Size = new Size(280, 26);
+            exportOverridesToolStripMenuItem.Text = "Export Ecological-Group Overrides...";
+            exportOverridesToolStripMenuItem.Click += exportOverridesToolStripMenuItem_Click;
+            //
+            // importOverridesToolStripMenuItem
+            //
+            importOverridesToolStripMenuItem.Name = "importOverridesToolStripMenuItem";
+            importOverridesToolStripMenuItem.Size = new Size(280, 26);
+            importOverridesToolStripMenuItem.Text = "Import Ecological-Group Overrides...";
+            importOverridesToolStripMenuItem.Click += importOverridesToolStripMenuItem_Click;
             //
             // fsiDatabankManagerToolStripMenuItem
             //
@@ -529,6 +545,8 @@ namespace ForamEcoQS
         private ToolStripMenuItem geographicAreasDatabankToolStripMenuItem;
         private ToolStripMenuItem indexSettingsToolStripMenuItem;
         private ToolStripMenuItem userCustomListsManagerToolStripMenuItem;
+        private ToolStripMenuItem exportOverridesToolStripMenuItem;
+        private ToolStripMenuItem importOverridesToolStripMenuItem;
         private Button calculateFambiButton;
         private Button btnCalcFSI;
         private Button btnCalcNQI;

@@ -71,6 +71,13 @@ namespace ForamEcoQS
                     Log("Warning: No reference list specified (-list). F-AMBI and related indices will not be calculated correctly.");
                 }
 
+                // Report species not found in the reference databank (excluded from eco-group-based
+                // indices such as Foram-AMBI). Optionally verified online against WoRMS with -worms.
+                if (refDatabank != null)
+                {
+                    ReportUnmatchedSpecies(inputData, refDatabank, options.UseWorms);
+                }
+
                 // Calculate Indices
                 Log("Calculating indices...");
                 DataTable results = CalculateIndices(inputData, refDatabank, options);
@@ -128,6 +135,10 @@ namespace ForamEcoQS
                         options.MudPercentage = mud;
                     }
                 }
+                else if (arg == "-worms")
+                {
+                    options.UseWorms = true;
+                }
                 else if (arg == "-help" || arg == "--help" || arg == "/?")
                 {
                     return null;
@@ -148,9 +159,11 @@ namespace ForamEcoQS
             Log("  -list LIST_NAME       Reference databank to use (e.g., 'jorissen', 'alve', 'bouchetmed', 'bouchetatl', 'bouchetsouthatl', 'OMalley2021').");
             Log("  -o OUTPUT_FILE        Path to output Excel file. If omitted, prints to console.");
             Log("  -mud=VALUE            Percentage of mud (grains < 63µm) for TSI-Med calculation (default: 50). Applies to all samples.");
+            Log("  -worms                Verify species not found in the reference databank against WoRMS");
+            Log("                        (World Register of Marine Species, marinespecies.org). Requires internet access.");
             Log("");
             Log("Example:");
-            Log("  foramecoqs -i data.xlsx -index=all -list jorissen -o results.xlsx");
+            Log("  foramecoqs -i data.xlsx -index=all -list jorissen -o results.xlsx -worms");
         }
 
         private static DataTable LoadInputExcel(string filePath)
@@ -168,6 +181,84 @@ namespace ForamEcoQS
                 });
                 return result.Tables.Count > 0 ? result.Tables[0] : null;
             }
+        }
+
+        /// <summary>
+        /// Reports species from the input file that were not found in the reference databank.
+        /// These species are excluded from eco-group-based indices (Foram-AMBI, Foram-M-AMBI,
+        /// NQIf, FIEI, BENTIX, BQI) but still count towards diversity indices and total abundance.
+        /// When <paramref name="useWorms"/> is set, each unmatched name is additionally verified
+        /// against the WoRMS (World Register of Marine Species) online database, logging whether
+        /// it is a recognized valid marine taxon, an outdated synonym (with the accepted name), or
+        /// unrecognized altogether. Purely diagnostic: it does not alter the calculated indices.
+        /// </summary>
+        private static void ReportUnmatchedSpecies(DataTable inputData, DataTable refDatabank, bool useWorms)
+        {
+            var databankValues = refDatabank.Rows.Cast<DataRow>()
+                .Select(r => r["Species"]?.ToString()?.Trim())
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Select(v => v!)
+                .ToList();
+            var speciesMatcher = new SpeciesNameMatcher(databankValues);
+
+            var unmatchedNames = inputData.Rows.Cast<DataRow>()
+                .Select(r => r[0]?.ToString()?.Trim())
+                .Where(n => !string.IsNullOrEmpty(n) && !speciesMatcher.IsMatch(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (unmatchedNames.Count == 0)
+            {
+                Log("Taxon check: all species were found in the reference databank.");
+                return;
+            }
+
+            Log($"Warning: {unmatchedNames.Count} species not found in the reference databank " +
+                "(excluded from Foram-AMBI and other eco-group-based indices): " +
+                string.Join(", ", unmatchedNames.Take(20)) +
+                (unmatchedNames.Count > 20 ? ", ..." : ""));
+
+            if (!useWorms)
+            {
+                Log("Tip: pass -worms to verify these names against the WoRMS online database.");
+                return;
+            }
+
+            Log($"WoRMS check: verifying {unmatchedNames.Count} species not found in the reference databank against marinespecies.org...");
+
+            Dictionary<string, WormsRecord> matches;
+            try
+            {
+                matches = WormsService.MatchNamesAsync(unmatchedNames).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Log($"WoRMS check: could not reach the WoRMS database ({ex.Message}). Skipping online verification.");
+                return;
+            }
+
+            int recognized = 0;
+            foreach (var name in unmatchedNames)
+            {
+                if (matches.TryGetValue(name, out var record) && record != null)
+                {
+                    recognized++;
+                    if (record.IsAccepted)
+                    {
+                        Log($"  [OK]      {name} -- valid marine taxon (AphiaID {record.AphiaID}, {record.Rank}), not present in the reference databank.");
+                    }
+                    else
+                    {
+                        Log($"  [SYNONYM] {name} -> accepted name: {record.Valid_name} (AphiaID {record.Valid_AphiaID}, {record.Rank}).");
+                    }
+                }
+                else
+                {
+                    Log($"  [UNKNOWN] {name} -- not found in the reference databank nor in WoRMS.");
+                }
+            }
+
+            Log($"WoRMS check complete: {recognized} of {unmatchedNames.Count} unmatched name(s) recognized as valid marine taxa.");
         }
 
         private static DataTable LoadReferenceDatabank(string listName)
@@ -417,8 +508,17 @@ namespace ForamEcoQS
                 // FoRAM Index
                 if (calculateFoRAMIndex)
                 {
-                    var (symbiont, stressTolerant, heterotrophic, _) = SpecializedDatabankLoader.CalculateFoRAMPercentages(speciesAbundances, foramDatabank);
+                    var (symbiont, stressTolerant, heterotrophic, assigned) = SpecializedDatabankLoader.CalculateFoRAMPercentages(speciesAbundances, foramDatabank);
                     indexValues["FoRAM Index"][i] = BioticIndicesCalculator.CalculateFoRAMIndex(symbiont, stressTolerant, heterotrophic);
+
+                    // The FoRAM Index is designed for tropical coral-reef assemblages. If only a small
+                    // share of this sample's fauna could be classified into a FoRAM functional group,
+                    // the computed value is unlikely to be ecologically meaningful.
+                    if (assigned < BioticIndicesCalculator.FoRAMIndexMinApplicablePercent)
+                    {
+                        Log($"Warning: sample '{sampleName}' - only {assigned:F1}% of the assemblage matched FoRAM Index taxa; " +
+                            "this index is designed for tropical coral-reef environments and may not be meaningful here.");
+                    }
                 }
             }
 
@@ -517,6 +617,7 @@ namespace ForamEcoQS
             public string ReferenceList { get; set; }
             public string OutputFile { get; set; }
             public double MudPercentage { get; set; } = 50.0;
+            public bool UseWorms { get; set; } = false;
         }
     }
 }

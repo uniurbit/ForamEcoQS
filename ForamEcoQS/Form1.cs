@@ -8,6 +8,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ForamEcoQS
@@ -822,7 +823,7 @@ namespace ForamEcoQS
             form2.Show();
         }
 
-        private void compareDatabankButton_Click(object sender, EventArgs e)
+        private async void compareDatabankButton_Click(object sender, EventArgs e)
         {
             if (datasetLoaded == 0 || dataGridView1.Rows.Count == 0 || dataGridView1.Columns.Count == 0)
             {
@@ -853,12 +854,17 @@ namespace ForamEcoQS
             // Create intelligent species name matcher
             var speciesMatcher = new SpeciesNameMatcher(databankValues);
 
+            // Rows whose species name matched neither an override nor the databank;
+            // candidates for an optional WoRMS online verification pass below.
+            var unmatchedRows = new List<DataGridViewRow>();
+
             // Iterate through each row in dataGridView1
             foreach (DataGridViewRow gridRow in dataGridView1.Rows)
             {
                 if (gridRow.Cells[0].Value != null)
                 {
                     string gridValue = gridRow.Cells[0].Value.ToString()?.Trim();
+                    gridRow.Cells[0].ToolTipText = string.Empty;
 
                     // Check for Override FIRST
                     if (!string.IsNullOrEmpty(gridValue) && overrideManager.HasOverride(gridValue))
@@ -873,6 +879,7 @@ namespace ForamEcoQS
                     {
                         // If not found, color the row red
                         gridRow.DefaultCellStyle.BackColor = Color.Red;
+                        unmatchedRows.Add(gridRow);
                     }
                     else
                     {
@@ -899,7 +906,99 @@ namespace ForamEcoQS
             advancedIndicesButton.Enabled = true;
             plotIndicesButton.Enabled = true;
             compositePlotButton.Enabled = true;
+
+            // Optional online verification of species not found in the local databank
+            if (_useWormsVerification && unmatchedRows.Count > 0)
+            {
+                await VerifyUnmatchedSpeciesWithWormsAsync(unmatchedRows);
+            }
         }
+
+        /// <summary>
+        /// Looks up species names that were not found in the local databank against the
+        /// WoRMS (World Register of Marine Species) online database. Names recognized as
+        /// valid marine taxa are re-colored orange (instead of red) so they are not
+        /// silently deleted by "Clean and Normalize", and a tooltip shows the current
+        /// accepted name when the entered name is an outdated synonym.
+        /// </summary>
+        private async Task VerifyUnmatchedSpeciesWithWormsAsync(List<DataGridViewRow> unmatchedRows)
+        {
+            var namesToCheck = unmatchedRows
+                .Select(r => r.Cells[0].Value?.ToString()?.Trim())
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (namesToCheck.Count == 0)
+                return;
+
+            Cursor.Current = Cursors.WaitCursor;
+            compareDatabankButton.Enabled = false;
+
+            try
+            {
+                Dictionary<string, WormsRecord> matches;
+                try
+                {
+                    matches = await WormsService.MatchNamesAsync(namesToCheck);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Could not reach the WoRMS (World Register of Marine Species) database:\n{ex.Message}\n\n" +
+                        "Species not found in the local databank remain marked in red.",
+                        "WoRMS Lookup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                int recognizedCount = 0;
+                var suggestions = new List<string>();
+
+                foreach (var row in unmatchedRows)
+                {
+                    string gridValue = row.Cells[0].Value?.ToString()?.Trim();
+                    if (string.IsNullOrEmpty(gridValue))
+                        continue;
+
+                    if (!matches.TryGetValue(gridValue, out var record) || record == null)
+                        continue;
+
+                    recognizedCount++;
+                    row.DefaultCellStyle.BackColor = Color.Orange;
+
+                    string acceptedName = record.IsAccepted ? record.Scientificname : record.Valid_name;
+                    row.Cells[0].ToolTipText =
+                        $"WoRMS: {record.Rank} - {record.Status}\n" +
+                        $"AphiaID: {record.AphiaID}\n" +
+                        (record.IsAccepted ? "" : $"Accepted name: {acceptedName}\n") +
+                        $"Classification: {record.Kingdom} > {record.Phylum} > {record.TaxonomicClass} > {record.Order} > {record.Family} > {record.Genus}";
+
+                    if (!record.IsAccepted && !string.IsNullOrEmpty(acceptedName) &&
+                        !string.Equals(acceptedName, gridValue, StringComparison.OrdinalIgnoreCase))
+                    {
+                        suggestions.Add($"{gridValue} -> {acceptedName}");
+                    }
+                }
+
+                string summary = $"WoRMS verification complete.\n\n" +
+                    $"{recognizedCount} of {namesToCheck.Count} unmatched name(s) were recognized as valid marine taxa " +
+                    "(highlighted in orange) even though they are not present in the loaded ecological databank.";
+
+                if (suggestions.Count > 0)
+                {
+                    summary += "\n\nPossible name updates (current name is a synonym of the accepted name):\n" +
+                        string.Join("\n", suggestions.Take(20));
+                }
+
+                MessageBox.Show(summary, "WoRMS Species Verification", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            finally
+            {
+                Cursor.Current = Cursors.Default;
+                compareDatabankButton.Enabled = true;
+            }
+        }
+
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (listBox1.SelectedIndex == -1 || listBox1.SelectedItem == null)
@@ -1147,13 +1246,88 @@ namespace ForamEcoQS
             customListsForm.ShowDialog(this);
         }
 
+        private void exportOverridesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var allOverrides = overrideManager.GetAllOverrides();
+            if (allOverrides.Count == 0)
+            {
+                MessageBox.Show("There are no manual ecological-group overrides to export.",
+                    "No Overrides", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var saveDialog = new SaveFileDialog
+            {
+                Filter = "JSON File (*.json)|*.json",
+                Title = "Export Ecological-Group Overrides",
+                FileName = "eco_overrides.json"
+            };
+
+            if (saveDialog.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    overrideManager.ExportToFile(saveDialog.FileName);
+                    MessageBox.Show($"Exported {allOverrides.Count} override(s) to:\n{saveDialog.FileName}\n\n" +
+                        "This file can be shared with collaborators or committed to version control.",
+                        "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to export overrides: {ex.Message}", "Export Failed",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void importOverridesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using var openDialog = new OpenFileDialog
+            {
+                Filter = "JSON File (*.json)|*.json",
+                Title = "Import Ecological-Group Overrides"
+            };
+
+            if (openDialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            bool merge = true;
+            if (overrideManager.GetAllOverrides().Count > 0)
+            {
+                var result = MessageBox.Show(
+                    "Merge imported overrides with the existing ones (Yes),\n" +
+                    "or replace all existing overrides entirely (No)?",
+                    "Import Overrides", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                if (result == DialogResult.Cancel)
+                    return;
+
+                merge = result == DialogResult.Yes;
+            }
+
+            try
+            {
+                int count = overrideManager.ImportFromFile(openDialog.FileName, merge);
+                MessageBox.Show($"Imported {count} override(s) from:\n{openDialog.FileName}\n\n" +
+                    "Re-run Compare to apply them to the current dataset.",
+                    "Import Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                compareDatabankButton.PerformClick();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to import overrides: {ex.Message}", "Import Failed",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void indexSettingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Show Index Settings form with current settings
             using var settingsForm = new IndexSettingsForm(
                 _currentFAMBIThreshold, _currentTSIReference,
                 _currentTSIThreshold, _currentExpHbcThreshold,
-                _useJorissenList, _calculateEQR, _fsiRefValue, _expHbcRefValue);
+                _useJorissenList, _calculateEQR, _fsiRefValue, _expHbcRefValue,
+                _useWormsVerification);
             InheritParentIcon(settingsForm);
             if (settingsForm.ShowDialog(this) == DialogResult.OK)
             {
@@ -1166,6 +1340,7 @@ namespace ForamEcoQS
                 _calculateEQR = settingsForm.CalculateEQR;
                 _fsiRefValue = settingsForm.FSIReferenceValue;
                 _expHbcRefValue = settingsForm.ExpHbcReferenceValue;
+                _useWormsVerification = settingsForm.UseWormsVerification;
 
                 MessageBox.Show("Index settings updated. New settings will be applied to next calculation.",
                     "Settings Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -1181,6 +1356,7 @@ namespace ForamEcoQS
         private bool _calculateEQR = false;
         private double _fsiRefValue = 10.0;
         private double _expHbcRefValue = 20.0;
+        private bool _useWormsVerification = false;
 
         private void listBox1_SelectedIndexChanged_1(object sender, EventArgs e)
         {

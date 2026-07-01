@@ -741,7 +741,10 @@ namespace ForamEcoQS
                     var (symbiont, stressTolerant, heterotrophic, assigned) =
                         SpecializedDatabankLoader.CalculateFoRAMPercentages(speciesAbundances, foramDatabank);
                     result.FoRAM_Index = BioticIndicesCalculator.CalculateFoRAMIndex(symbiont, stressTolerant, heterotrophic);
-                    result.FoRAM_ApplicableEnvironment = true;
+                    // The index is only ecologically meaningful if a substantial share of the
+                    // assemblage could actually be classified into a FoRAM functional group;
+                    // otherwise this is likely not a tropical coral-reef environment.
+                    result.FoRAM_ApplicableEnvironment = assigned >= BioticIndicesCalculator.FoRAMIndexMinApplicablePercent;
                     result.FoRAM_SymbiontPercent = symbiont;
                     result.FoRAM_StressTolerantPercent = stressTolerant;
                     result.FoRAM_HeterotrophicPercent = heterotrophic;

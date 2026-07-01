@@ -385,6 +385,16 @@ namespace ForamEcoQS
         }
 
         /// <summary>
+        /// Minimum percentage of a sample's assemblage that must be classifiable into a
+        /// FoRAM Index functional group (symbiont-bearing / stress-tolerant / other heterotrophic,
+        /// per Hallock et al. 2003) for the index to be considered meaningful. The FoRAM Index was
+        /// designed for tropical coral-reef assemblages dominated by larger benthic foraminifera;
+        /// below this threshold the assemblage is likely from a different (e.g. temperate soft-bottom)
+        /// environment where the index is not applicable, even though a numeric value can still be computed.
+        /// </summary>
+        public const double FoRAMIndexMinApplicablePercent = 20.0;
+
+        /// <summary>
         /// FAMBI Ecological Quality Status classes
         /// Supports different threshold systems
         /// </summary>
@@ -1003,9 +1013,10 @@ namespace ForamEcoQS
             get
             {
                 if (double.IsNaN(FoRAM_Index))
-                    return "Not calculated (non-tropical environment)";
+                    return "Not calculated (databank unavailable)";
                 if (!FoRAM_ApplicableEnvironment)
-                    return "Warning: Index only valid for tropical coral reefs";
+                    return $"Warning: only {FoRAM_AssignedPercent:F1}% of the assemblage matched FoRAM Index taxa; " +
+                           "this index is designed for tropical coral-reef environments and may not be meaningful here";
                 return BioticIndicesCalculator.GetFoRAM_Status(FoRAM_Index);
             }
         }
