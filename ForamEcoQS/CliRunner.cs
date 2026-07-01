@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using ClosedXML.Excel;
 using ExcelDataReader;
 
@@ -84,7 +85,30 @@ namespace ForamEcoQS
                 // indices such as Foram-AMBI). Optionally verified online against WoRMS with -worms.
                 if (refDatabank != null)
                 {
+                    if (!string.IsNullOrEmpty(options.EcoOverridesFile))
+                    {
+                        options.EcoOverrides = LoadIntegerOverrides(options.EcoOverridesFile, "ecological-group");
+                        ApplyEcoOverridesToDatabank(refDatabank, options.EcoOverrides);
+                        Log($"Loaded {options.EcoOverrides.Count} ecological-group override(s) from: {options.EcoOverridesFile}");
+                    }
+
                     ReportUnmatchedSpecies(inputData, refDatabank, options.UseWorms);
+                }
+                else if (!string.IsNullOrEmpty(options.EcoOverridesFile))
+                {
+                    Log("Warning: -overrides was supplied without -list; ecological-group overrides require a reference list and will be ignored.");
+                }
+
+                if (!string.IsNullOrEmpty(options.FsiOverridesFile))
+                {
+                    options.FsiOverrides = LoadCategoryOverrides(options.FsiOverridesFile, "FSI", NormalizeFsiCategory);
+                    Log($"Loaded {options.FsiOverrides.Count} FSI override(s) from: {options.FsiOverridesFile}");
+                }
+
+                if (!string.IsNullOrEmpty(options.ForamOverridesFile))
+                {
+                    options.ForamOverrides = LoadCategoryOverrides(options.ForamOverridesFile, "FoRAM", NormalizeForamCategory);
+                    Log($"Loaded {options.ForamOverrides.Count} FoRAM Index override(s) from: {options.ForamOverridesFile}");
                 }
 
                 // Calculate Indices
@@ -148,6 +172,38 @@ namespace ForamEcoQS
                 {
                     options.UseWorms = true;
                 }
+                else if ((arg == "-overrides" || arg == "-eg-overrides") && i + 1 < args.Length)
+                {
+                    options.EcoOverridesFile = args[++i];
+                }
+                else if (arg.StartsWith("-overrides="))
+                {
+                    options.EcoOverridesFile = arg.Substring("-overrides=".Length);
+                }
+                else if (arg.StartsWith("-eg-overrides="))
+                {
+                    options.EcoOverridesFile = arg.Substring("-eg-overrides=".Length);
+                }
+                else if (arg == "-fsi-overrides" && i + 1 < args.Length)
+                {
+                    options.FsiOverridesFile = args[++i];
+                }
+                else if (arg.StartsWith("-fsi-overrides="))
+                {
+                    options.FsiOverridesFile = arg.Substring("-fsi-overrides=".Length);
+                }
+                else if (arg == "-fsi-overrides-replace")
+                {
+                    options.ReplaceFsiWithOverrides = true;
+                }
+                else if (arg == "-foram-overrides" && i + 1 < args.Length)
+                {
+                    options.ForamOverridesFile = args[++i];
+                }
+                else if (arg.StartsWith("-foram-overrides="))
+                {
+                    options.ForamOverridesFile = arg.Substring("-foram-overrides=".Length);
+                }
                 else if (arg == "-help" || arg == "--help" || arg == "/?")
                 {
                     return null;
@@ -168,6 +224,10 @@ namespace ForamEcoQS
             Log("  -list LIST_NAME       Reference databank to use (e.g., 'jorissen', 'alve', 'bouchetmed', 'bouchetatl', 'bouchetsouthatl', 'OMalley2021').");
             Log("  -o OUTPUT_FILE        Path to output Excel file. If omitted, prints to console.");
             Log("  -mud=VALUE            Percentage of mud (grains < 63µm) for TSI-Med calculation (default: 50). Applies to all samples.");
+            Log("  -overrides FILE       Apply manual ecological-group overrides from JSON or CSV (Species;Ecogroup).");
+            Log("  -fsi-overrides FILE   Apply FSI category overrides from JSON or CSV (Species;S/T or Sen/Str).");
+            Log("  -fsi-overrides-replace Use the supplied FSI override file as the complete FSI list.");
+            Log("  -foram-overrides FILE Apply FoRAM functional-group overrides from JSON or CSV (Species;SB/ST/SH/H).");
             Log("  -worms                Verify species not found in the reference databank against WoRMS");
             Log("                        (World Register of Marine Species, marinespecies.org). Requires internet access.");
             Log("");
@@ -288,6 +348,132 @@ namespace ForamEcoQS
             }
         }
 
+        private static void ApplyEcoOverridesToDatabank(DataTable refDatabank, Dictionary<string, int> overrides)
+        {
+            if (refDatabank == null || overrides.Count == 0) return;
+
+            foreach (var kvp in overrides)
+            {
+                DataRow existing = refDatabank.Rows.Cast<DataRow>()
+                    .FirstOrDefault(r => string.Equals(
+                        r["Species"]?.ToString()?.Trim(),
+                        kvp.Key,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (existing != null)
+                {
+                    existing["Ecogroup"] = kvp.Value.ToString();
+                }
+                else
+                {
+                    DataRow row = refDatabank.NewRow();
+                    row["Species"] = kvp.Key;
+                    row["Ecogroup"] = kvp.Value.ToString();
+                    refDatabank.Rows.Add(row);
+                }
+            }
+        }
+
+        private static Dictionary<string, int> LoadIntegerOverrides(string filePath, string label)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"{label} override file not found: {filePath}");
+
+            var overrides = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (Path.GetExtension(filePath).Equals(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                string json = File.ReadAllText(filePath);
+                var parsed = JsonSerializer.Deserialize<Dictionary<string, int>>(json)
+                             ?? new Dictionary<string, int>();
+
+                foreach (var kvp in parsed)
+                {
+                    if (!string.IsNullOrWhiteSpace(kvp.Key) && kvp.Value >= 1 && kvp.Value <= 5)
+                        overrides[kvp.Key.Trim()] = kvp.Value;
+                }
+            }
+            else
+            {
+                foreach (var line in File.ReadLines(filePath).Skip(1))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Contains(';') ? line.Split(';') : line.Split(',');
+                    if (parts.Length >= 2 &&
+                        !string.IsNullOrWhiteSpace(parts[0]) &&
+                        int.TryParse(parts[1].Trim(), out int value) &&
+                        value >= 1 && value <= 5)
+                    {
+                        overrides[parts[0].Trim()] = value;
+                    }
+                }
+            }
+
+            return overrides;
+        }
+
+        private static Dictionary<string, string> LoadCategoryOverrides(
+            string filePath,
+            string label,
+            Func<string, string> normalize)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"{label} override file not found: {filePath}");
+
+            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (Path.GetExtension(filePath).Equals(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                string json = File.ReadAllText(filePath);
+                var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                             ?? new Dictionary<string, string>();
+
+                foreach (var kvp in parsed)
+                {
+                    var value = normalize(kvp.Value);
+                    if (!string.IsNullOrWhiteSpace(kvp.Key) && !string.IsNullOrWhiteSpace(value))
+                        overrides[kvp.Key.Trim()] = value;
+                }
+            }
+            else
+            {
+                foreach (var line in File.ReadLines(filePath).Skip(1))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Contains(';') ? line.Split(';') : line.Split(',');
+                    if (parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[0]))
+                    {
+                        var value = normalize(parts[1]);
+                        if (!string.IsNullOrWhiteSpace(value))
+                            overrides[parts[0].Trim()] = value;
+                    }
+                }
+            }
+
+            return overrides;
+        }
+
+        private static string NormalizeFsiCategory(string value)
+        {
+            string v = value?.Trim().ToUpperInvariant() ?? "";
+            return v switch
+            {
+                "S" or "SEN" or "SENSITIVE" => "S",
+                "T" or "STR" or "TOLERANT" or "STRESS" => "T",
+                _ => "",
+            };
+        }
+
+        private static string NormalizeForamCategory(string value)
+        {
+            string v = value?.Trim().ToUpperInvariant() ?? "";
+            return v switch
+            {
+                "SB" => "SB",
+                "ST" => "ST",
+                "SH" or "H" => "SH",
+                _ => "",
+            };
+        }
+
         private static DataTable CalculateIndices(DataTable inputData, DataTable refDatabank, CliOptions options,
             Dictionary<string, double> mudPercentagesPerSample)
         {
@@ -321,6 +507,12 @@ namespace ForamEcoQS
             var fsiDatabank = SpecializedDatabankLoader.LoadFSIDatabank();
             var tsiMedDatabank = SpecializedDatabankLoader.LoadTSIMedDatabank();
             var foramDatabank = SpecializedDatabankLoader.LoadFoRAMDatabank();
+            if (options.ReplaceFsiWithOverrides && options.FsiOverrides.Count > 0)
+                fsiDatabank = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in options.FsiOverrides)
+                fsiDatabank[kvp.Key] = kvp.Value;
+            foreach (var kvp in options.ForamOverrides)
+                foramDatabank[kvp.Key] = kvp.Value;
             var (fsiDatabankAvailable, tsiMedDatabankAvailable) = SpecializedDatabankLoader.CheckDatabanksAvailability();
             var foramDatabankAvailable = SpecializedDatabankLoader.CheckFoRAMDatabankAvailability();
             bool fambiAvailable = (refDatabank != null);
@@ -653,6 +845,13 @@ namespace ForamEcoQS
             public string OutputFile { get; set; }
             public double MudPercentage { get; set; } = 50.0;
             public bool UseWorms { get; set; } = false;
+            public string EcoOverridesFile { get; set; }
+            public string FsiOverridesFile { get; set; }
+            public string ForamOverridesFile { get; set; }
+            public bool ReplaceFsiWithOverrides { get; set; } = false;
+            public Dictionary<string, int> EcoOverrides { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            public Dictionary<string, string> FsiOverrides { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            public Dictionary<string, string> ForamOverrides { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 }
