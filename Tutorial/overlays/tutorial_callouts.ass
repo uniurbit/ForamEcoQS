@@ -1,0 +1,30 @@
+[Script Info]
+Title: ForamEcoQS tutorial callouts
+ScriptType: v4.00+
+PlayResX: 3840
+PlayResY: 2160
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Top,Segoe UI Semibold,78,&H00FFFFFF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,18,0,8,180,180,105,1
+Style: Bottom,Segoe UI Semibold,72,&H00FFFFFF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,18,0,2,220,220,110,1
+Style: Tip,Segoe UI,61,&H00FFFFFF,&H000000FF,&HBC13646D,&HBC13646D,0,0,0,0,100,100,0,0,3,15,0,8,220,220,105,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:04.00,0:00:16.00,Top,,0,0,0,,1  Open the abundance matrix
+Dialogue: 0,0:00:16.00,0:00:29.00,Bottom,,0,0,0,,Rows are species · columns are samples · cells are counts
+Dialogue: 0,0:00:29.00,0:00:43.00,Top,,0,0,0,,2  Select the ecological-group databank
+Dialogue: 0,0:00:43.00,0:00:52.00,Tip,,0,0,0,,Compare species names before calculating
+Dialogue: 0,0:00:52.00,0:01:09.00,Top,,0,0,0,,3  Review Index Calculation Settings
+Dialogue: 0,0:01:09.00,0:01:27.00,Top,,0,0,0,,4  Choose the indices to calculate
+Dialogue: 0,0:01:27.00,0:01:39.00,Bottom,,0,0,0,,TSI asks for mud percentage separately
+Dialogue: 0,0:01:39.00,0:01:57.00,Top,,0,0,0,,5  Enter one mud value for each sample
+Dialogue: 0,0:01:57.00,0:02:11.00,Tip,,0,0,0,,The synthetic gradient runs from 15% to 85% mud
+Dialogue: 0,0:02:11.00,0:02:24.00,Top,,0,0,0,,6  Inspect calculated results and EQS classes
+Dialogue: 0,0:02:24.00,0:02:43.00,Top,,0,0,0,,7  Select only the indices needed for a clear plot
+Dialogue: 0,0:02:43.00,0:02:58.00,Bottom,,0,0,0,,Foram-AMBI · FSI · exp(H'bc)
+Dialogue: 0,0:02:58.00,0:03:07.00,Top,,0,0,0,,8  Generate the line plot
+Dialogue: 0,0:03:07.00,0:03:15.00,Bottom,,0,0,0,,Use Composite Panel for a publication-ready overview
