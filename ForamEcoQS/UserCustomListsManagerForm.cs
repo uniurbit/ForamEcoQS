@@ -936,11 +936,17 @@ namespace ForamEcoQS
                 string fileName = $"{name.Replace(" ", "_").ToLower()}_{indexType.Replace(" ", "_").ToLower()}.csv";
                 string destPath = Path.Combine(userListsDirectory, fileName);
 
-                using var writer = new StreamWriter(destPath, false, Encoding.UTF8);
-                writer.WriteLine("Species;Value");
-                foreach (DataRow row in speciesData.Rows)
+                // Close the destination file before updating the bound list grid.
+                // Adding the manifest row triggers SelectionChanged immediately,
+                // which reloads this file and otherwise causes a Windows sharing
+                // violation while the StreamWriter is still open.
+                using (var writer = new StreamWriter(destPath, false, Encoding.UTF8))
                 {
-                    writer.WriteLine($"{row["Species"]};{row["Value"]}");
+                    writer.WriteLine("Species;Value");
+                    foreach (DataRow row in speciesData.Rows)
+                    {
+                        writer.WriteLine($"{row["Species"]};{row["Value"]}");
+                    }
                 }
 
                 // Add to manifest
