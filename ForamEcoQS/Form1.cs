@@ -281,8 +281,10 @@ namespace ForamEcoQS
 
             comboBox1.Items.AddRange(options);
 
-            // Set the default selected option to "Alve"
-            comboBox1.SelectedItem = "Alve";
+            // Select the full descriptive entry rather than the old short label.
+            // Leaving SelectedItem null makes the editable combo vulnerable to
+            // invalid text and breaks the first databank comparison.
+            comboBox1.SelectedItem = databankOptions.First(option => option.StartsWith("Alve"));
 
             LoadDataBank loader = new LoadDataBank();
             databank = loader.LoadDataSet("alve");
