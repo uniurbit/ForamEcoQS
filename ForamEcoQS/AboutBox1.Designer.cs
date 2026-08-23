@@ -127,7 +127,7 @@
             groupBox2.Controls.Add(label3);
             groupBox2.Location = new Point(373, 353);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new Size(559, 260);
+            groupBox2.Size = new Size(559, 220);
             groupBox2.TabIndex = 27;
             groupBox2.TabStop = false;
             groupBox2.Text = "Disclaimer";
@@ -144,13 +144,14 @@
             // textBox1
             //
             textBox1.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            textBox1.Location = new Point(373, 623);
+            textBox1.Location = new Point(373, 583);
             textBox1.Multiline = true;
             textBox1.Name = "textBox1";
             textBox1.ReadOnly = true;
-            textBox1.Size = new Size(559, 130);
+            textBox1.ScrollBars = ScrollBars.Vertical;
+            textBox1.Size = new Size(559, 170);
             textBox1.TabIndex = 28;
-            textBox1.Text = "This software is distributed under the MIT License.\r\nPlease cite it as follows in publications:\r\nMangiagalli M., Frontalini F., Cristallo C., Francescangeli F., ForamEcoQS - Foraminiferal Ecological Quality Status, MIT License, 2024";
+            textBox1.Text = "This software is distributed under the MIT License.\r\n\r\nHow to cite:\r\nMangiagalli, M., Frontalini, F., Cristallo, C., Francescangeli, F., 2026. ForamEcoQS: An analytical software suite for foraminiferal ecological quality status assessment. SoftwareX 35, 102921.\r\nhttps://doi.org/10.1016/j.softx.2026.102921";
             //
             // AboutBox1
             //

@@ -16,6 +16,12 @@ ForamEcoQS is a Windows desktop application for ecological quality assessment ba
 
 Year: `2026`
 
+## Citation
+
+If you use ForamEcoQS in scientific work, please cite:
+
+Mangiagalli, M., Frontalini, F., Cristallo, C., Francescangeli, F., 2026. ForamEcoQS: An analytical software suite for foraminiferal ecological quality status assessment. *SoftwareX* 35, 102921. https://doi.org/10.1016/j.softx.2026.102921
+
 ## Overview
 
 ForamEcoQS supports a practical analysis workflow:
