@@ -10,7 +10,7 @@
 - Opening asset: official repository logo, `ForamEcoQS/logo.png`
 - Synthetic input: `dataset/ForamEcoQS_Tutorial_Dataset.csv`
 - Reproducible render: `scripts/render_tutorial.ps1`
-- Master SHA-256: `893321C78FA1AD68FB02D36CFCA21E4D920418358DF95DDF50C01E9EBD3A9CE7`
+- Master SHA-256: `E1712367D000D1A7EC8B3433A2FF19CA35A1987FF67B3E32EBB2F2512A68F296`
 - Dataset SHA-256: `79F5A02F7D6A4E79424C889E72135DD0FE39CFC3E77F163FEC10D5EF4535CC4E`
 
 ## Validation

@@ -1,0 +1,9 @@
+segment,start,end,english,translation
+01,00:00.000,00:20.000,"Welcome back to ForamEcoQS.",
+02,00:20.000,00:43.000,"Open the synthetic abundance matrix and enable WoRMS verification.",
+03,00:43.000,01:10.000,"Review local matches, accepted names, synonyms, and unresolved taxa.",
+04,01:10.000,01:52.000,"Import and inspect the custom Species-and-Value list.",
+05,01:52.000,02:40.000,"Import and filter the synthetic geographic reference records.",
+06,02:40.000,03:20.000,"Calculate the indices and enter mud percentages in sample order.",
+07,03:20.000,03:51.000,"Review the compact Cohen's kappa agreement matrix.",
+08,03:51.000,04:06.000,"Generate and interpret the confusion matrix.",

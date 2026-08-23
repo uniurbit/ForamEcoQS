@@ -1,0 +1,33 @@
+[Script Info]
+Title: ForamEcoQS advanced tutorial callouts
+ScriptType: v4.00+
+PlayResX: 3840
+PlayResY: 2160
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Top,Segoe UI Semibold,76,&H00FFFFFF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,18,0,8,180,180,105,1
+Style: Bottom,Segoe UI Semibold,69,&H00FFFFFF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,18,0,2,220,220,105,1
+Style: Orange,Segoe UI Semibold,68,&H0000A5FF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,17,0,8,200,200,105,1
+Style: Red,Segoe UI Semibold,68,&H004D4DFF,&H000000FF,&HB0002638,&HB0002638,-1,0,0,0,100,100,0,0,3,17,0,2,200,200,105,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:12.00,Top,,0,0,0,,1  Load a matrix containing unmatched taxon names
+Dialogue: 0,0:00:12.00,0:00:31.00,Top,,0,0,0,,2  Enable online WoRMS verification
+Dialogue: 0,0:00:34.00,0:00:48.00,Orange,,0,0,0,,Orange = recognized by WoRMS but absent locally
+Dialogue: 0,0:00:38.00,0:00:48.00,Red,,0,0,0,,Red = not found locally or in WoRMS
+Dialogue: 0,0:00:48.00,0:01:00.00,Bottom,,0,0,0,,Synonyms include the currently accepted name
+Dialogue: 0,0:01:01.00,0:01:15.00,Top,,0,0,0,,3  Open User Custom Lists Manager
+Dialogue: 0,0:01:15.00,0:01:31.00,Top,,0,0,0,,Import a Species;Value CSV and choose its index type
+Dialogue: 0,0:01:31.00,0:01:43.00,Bottom,,0,0,0,,The imported list is immediately editable and filterable
+Dialogue: 0,0:01:43.00,0:01:59.00,Top,,0,0,0,,4  Open the Geographic Areas Database
+Dialogue: 0,0:01:59.00,0:02:17.00,Bottom,,0,0,0,,Store environment, region, reference, DOI, and index usage
+Dialogue: 0,0:02:17.00,0:02:31.00,Top,,0,0,0,,Filter the database by environment
+Dialogue: 0,0:02:31.00,0:02:48.00,Top,,0,0,0,,5  Load the validated abundance matrix
+Dialogue: 0,0:02:48.00,0:03:11.00,Bottom,,0,0,0,,Calculate multiple indices with EQS classifications
+Dialogue: 0,0:03:11.00,0:03:29.00,Top,,0,0,0,,6  Open EQS Agreement Analysis
+Dialogue: 0,0:03:29.00,0:03:42.00,Bottom,,0,0,0,,The colored table reports pairwise Cohen's kappa
+Dialogue: 0,0:03:42.00,0:03:50.00,Top,,0,0,0,,7  Generate a pairwise confusion matrix

@@ -2891,10 +2891,11 @@ https://doi.org/10.12681/mms.266";
 
             var form = new Form
             {
-                Text = "EQS Agreement Analysis (Cohen's Kappa & Confusion Matrix)",
+                Text = "EQS Agreement Analysis (Cohen's Kappa and Confusion Matrix)",
                 Size = new Size(1200, 800),
                 StartPosition = FormStartPosition.CenterParent,
-                WindowState = FormWindowState.Maximized,
+                MinimumSize = new Size(1000, 700),
+                WindowState = FormWindowState.Normal,
                 Icon = this.Icon
             };
 

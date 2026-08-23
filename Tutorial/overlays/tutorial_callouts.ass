@@ -25,6 +25,6 @@ Dialogue: 0,0:01:39.00,0:01:57.00,Top,,0,0,0,,5  Enter one mud value for each sa
 Dialogue: 0,0:01:57.00,0:02:11.00,Tip,,0,0,0,,The synthetic gradient runs from 15% to 85% mud
 Dialogue: 0,0:02:11.00,0:02:24.00,Top,,0,0,0,,6  Inspect calculated results and EQS classes
 Dialogue: 0,0:02:24.00,0:02:43.00,Top,,0,0,0,,7  Select only the indices needed for a clear plot
-Dialogue: 0,0:02:43.00,0:02:58.00,Bottom,,0,0,0,,Foram-AMBI · FSI · exp(H'bc)
-Dialogue: 0,0:02:58.00,0:03:07.00,Top,,0,0,0,,8  Generate the line plot
-Dialogue: 0,0:03:07.00,0:03:15.00,Bottom,,0,0,0,,Use Composite Panel for a publication-ready overview
+Dialogue: 0,0:02:43.00,0:02:54.00,Bottom,,0,0,0,,Foram-AMBI · FSI · exp(H'bc)
+Dialogue: 0,0:02:54.00,0:03:03.00,Top,,0,0,0,,8  Generate the line plot
+Dialogue: 0,0:03:03.00,0:03:13.00,Bottom,,0,0,0,,Use Composite Panel for a publication-ready overview

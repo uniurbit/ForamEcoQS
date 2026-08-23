@@ -1,0 +1,39 @@
+1
+00:00:00,000 --> 00:00:20,000
+Welcome back to ForamEcoQS. In this advanced GUI tutorial,
+we verify species, manage lists, and compare EQS classifications.
+
+2
+00:00:20,000 --> 00:00:43,000
+Open the synthetic abundance matrix: species are rows,
+samples are columns, and every value is an integer count.
+
+3
+00:00:43,000 --> 00:01:10,000
+Enable WoRMS verification and run Compare Species.
+Review local matches, accepted names, synonyms, and unresolved taxa.
+
+4
+00:01:10,000 --> 00:01:52,000
+Import the Species-and-Value CSV in Custom Lists.
+Inspect its entries and document the list's source and version.
+
+5
+00:01:52,000 --> 00:02:40,000
+Import and filter Geographic Lists to find regional references.
+The displayed Adriatic records are synthetic tutorial examples.
+
+6
+00:02:40,000 --> 00:03:20,000
+Reload the validated matrix, calculate the indices,
+and enter the six mud percentages in sample order.
+
+7
+00:03:20,000 --> 00:03:51,000
+The compact colored agreement matrix reports pairwise Cohen's kappa.
+Interpret the values with sample size and class distribution.
+
+8
+00:03:51,000 --> 00:04:06,000
+Generate a confusion matrix. Diagonal cells are agreements;
+off-diagonal cells show disagreements between EQS classes.
