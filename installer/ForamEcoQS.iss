@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "1.1.4"
+  #define AppVersion "1.2.0"
 #endif
 
 #ifndef PublishDir
@@ -18,9 +18,9 @@ AppId={{8D4D917F-83A5-4E06-9CA8-81421538162D}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher=University of Urbino Carlo Bo
-AppPublisherURL=https://github.com/uniurbit/ForamEcoQS
-AppSupportURL=https://github.com/uniurbit/ForamEcoQS/issues
-AppUpdatesURL=https://github.com/uniurbit/ForamEcoQS/releases
+AppPublisherURL=https://github.com/mattemangia/ForamEcoQS.EtoForms
+AppSupportURL=https://github.com/mattemangia/ForamEcoQS.EtoForms/issues
+AppUpdatesURL=https://github.com/mattemangia/ForamEcoQS.EtoForms/releases
 DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -29,7 +29,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}
 OutputBaseFilename=ForamEcoQS-v{#AppVersion}-win-x64-setup
-SetupIconFile=..\ForamEcoQS\favicon.ico
+SetupIconFile=..\src\ForamEcoQS.App\Resources\favicon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 Compression=lzma2/ultra64
 SolidCompression=yes

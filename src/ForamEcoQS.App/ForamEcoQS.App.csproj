@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ForamEcoQS</RootNamespace>
+    <AssemblyName>ForamEcoQS.App</AssemblyName>
+    <Title>ForamEcoQS</Title>
+    <Description>FORAM-AMBI TOOLS, for the calculation of the F-AMBI index (Eto.Forms user interface).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ForamEcoQS.Core\ForamEcoQS.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Eto.Forms" Version="2.11.0" />
+    <PackageReference Include="OxyPlot.Core" Version="2.1.2" />
+    <PackageReference Include="OxyPlot.Eto" Version="2.1.0" />
+  </ItemGroup>
+
+  <!-- Databanks are read from the application directory at runtime, so they travel with the build. -->
+  <ItemGroup>
+    <Content Include="Data\*.csv">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\*.xls">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Logo and icon are embedded so they work identically on every backend. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\logo.png">
+      <LogicalName>ForamEcoQS.Resources.logo.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\favicon.ico">
+      <LogicalName>ForamEcoQS.Resources.favicon.ico</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

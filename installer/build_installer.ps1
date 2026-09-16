@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$project = Join-Path $repoRoot "ForamEcoQS\ForamEcoQS.csproj"
+$project = Join-Path $repoRoot "src\ForamEcoQS.Wpf\ForamEcoQS.Wpf.csproj"
 $iss = Join-Path $PSScriptRoot "ForamEcoQS.iss"
 $iscc = Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"
 
@@ -14,10 +14,12 @@ if (-not (Test-Path -LiteralPath $iscc)) {
     throw "Inno Setup compiler not found at: $iscc"
 }
 
-[xml]$projectXml = Get-Content -LiteralPath $project
-$version = [string]$projectXml.Project.PropertyGroup.Version
+# The version is shared by every project through Directory.Build.props.
+$propsFile = Join-Path $repoRoot "Directory.Build.props"
+[xml]$propsXml = Get-Content -LiteralPath $propsFile
+$version = [string]$propsXml.Project.PropertyGroup.Version
 if ([string]::IsNullOrWhiteSpace($version)) {
-    throw "Could not read Version from $project"
+    throw "Could not read Version from $propsFile"
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {

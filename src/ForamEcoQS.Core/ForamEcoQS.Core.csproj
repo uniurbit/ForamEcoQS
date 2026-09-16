@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ForamEcoQS</RootNamespace>
+    <AssemblyName>ForamEcoQS.Core</AssemblyName>
+    <Title>ForamEcoQS Core</Title>
+    <Description>Platform independent index calculations, databank loaders and CLI for ForamEcoQS.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="ExcelDataReader" Version="3.7.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
+  </ItemGroup>
+
+</Project>
