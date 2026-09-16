@@ -840,6 +840,14 @@ namespace ForamEcoQS.Compat
                 {
                     view.Row.Delete();
                     _owner.BoundTable?.AcceptChanges();
+
+                    // Outside a batch the DataView's ListChanged has already rebuilt the row list.
+                    // Inside one it is deferred, so the deleted row would stay here with a DataRow
+                    // that is no longer in the table, and reading any of its cells would throw.
+                    if (index < _items.Count && ReferenceEquals(_items[index].DataBoundItem, view))
+                    {
+                        _items.RemoveAt(index);
+                    }
                     return;
                 }
 
