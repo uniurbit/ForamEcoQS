@@ -1,6 +1,8 @@
 # ForamEcoQS
 
-ForamEcoQS is a Windows desktop application for ecological quality assessment based on benthic foraminifera. It targets `.NET 10`, uses Windows Forms for the graphical interface, and can also run in command-line mode. The software calculates multiple biotic and diversity indices from species-by-sample abundance matrices and assigns Ecological Quality Status (EQS) classes where implemented.
+ForamEcoQS is a cross-platform desktop application for ecological quality assessment based on benthic foraminifera. It targets `.NET 10`, uses [Eto.Forms](https://github.com/picoe/Eto) for the graphical interface - so the same code runs natively on **Windows (WPF)**, **Linux (GTK)** and **macOS (Cocoa)** - and can also run in command-line mode. The software calculates multiple biotic and diversity indices from species-by-sample abundance matrices and assigns Ecological Quality Status (EQS) classes where implemented.
+
+Supported architectures: `x64` and `arm64` on Linux and macOS, `x64` and `arm64` on Windows.
 
 ## Authors and Affiliations
 
@@ -39,11 +41,37 @@ ForamEcoQS supports a practical analysis workflow:
 
 - Create an empty dataset.
 - Open existing datasets from Excel or CSV.
+- Detect and correct transposed sheets automatically (see [Input File Layout](#input-file-layout)).
 - Save the current dataset to Excel.
 - Create spreadsheet templates from reference lists.
 - Add, remove, and rename sample columns.
 - Undo recent data edits.
 - Clean and normalize sample values.
+- Transpose the loaded sheet at any time from `Edit Data > Transpose Data (species ↔ samples)`.
+
+### Input File Layout
+
+ForamEcoQS expects **species down the first column and one sample per following column**:
+
+| Species | Station 1 | Station 2 | Station 3 |
+| --- | --- | --- | --- |
+| Ammonia beccarii | 10 | 20 | 5 |
+| Elphidium excavatum | 5 | 3 | 12 |
+| Mud (%) | 40 | 55 | 70 |
+
+Spreadsheets are just as often written the other way round, with samples in rows and species
+across the header. Both the GUI and the CLI check the layout when a file is opened and flip it
+when needed, so either arrangement can be loaded as it is. The check looks at, in order:
+
+1. The label in the top-left corner (`Species`, `Taxon`, ... against `Sample`, `Station`, `Site`, ...).
+2. Which axis carries the optional mud (%) entry, since that sits on the sample axis.
+3. How many labels on each axis read like taxon names (`Ammonia beccarii`, `Elphidium cf. excavatum`,
+   `Quinqueloculina sp.`) rather than sample codes (`S3`, `St. 12`, `Station_A`).
+
+A clear-cut case is transposed straight away and reported; a borderline one asks first in the GUI
+and is left alone with a warning in the CLI. Nothing is ever transposed silently, and
+`Edit Data > Transpose Data (species ↔ samples)` flips the sheet by hand whenever the
+detection gets it wrong.
 
 ### Index Calculation
 
@@ -238,29 +266,66 @@ Interpretation:
 - `2-4`: marginal conditions
 - `< 2`: unsuitable for coral growth
 
+## Repository Layout
+
+| Project | Target | Purpose |
+| --- | --- | --- |
+| `src/ForamEcoQS.Core` | `net10.0` | Index calculations, databank loaders, WoRMS client and the CLI. No UI dependencies. |
+| `src/ForamEcoQS.App` | `net10.0` | The Eto.Forms user interface, shared by every platform. |
+| `src/ForamEcoQS.Gtk` | `net10.0` | Linux executable (GTK 3 backend). |
+| `src/ForamEcoQS.Wpf` | `net10.0-windows` | Windows executable (WPF backend). |
+| `src/ForamEcoQS.Mac` | `net10.0` | macOS executable (Cocoa backend). |
+
 ## Requirements
 
 - [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0) for build and run from source. Confirm the installation with `dotnet --list-sdks`; a `10.0.x` entry is required.
-- Windows 10 or Windows 11 for normal GUI execution. The application target is `net10.0-windows`.
-- Bundled reference `.csv` and `.xls` files available at runtime.
+- For a packaged release, the matching [.NET 10 runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Desktop Runtime on Windows).
+- On Linux, GTK 3 must be present: `libgtk-3-0` plus `librsvg2-common` and `adwaita-icon-theme` for correct icon rendering.
+- Bundled reference `.csv` and `.xls` files available at runtime (they are copied next to the executable automatically).
 
-NuGet packages used by the project:
+NuGet packages used by the projects:
 
+- `Eto.Forms` and the `Eto.Platform.Gtk` / `Eto.Platform.Wpf` / `Eto.Platform.Mac64` backends
+- `OxyPlot.Core` and `OxyPlot.Eto`
 - `ClosedXML`
 - `ExcelDataReader`
 - `ExcelDataReader.DataSet`
-- `OxyPlot.Core`
-- `OxyPlot.WindowsForms`
-- `System.Data.DataSetExtensions`
 
-Important build note:
+Build note: only `src/ForamEcoQS.Wpf` is Windows-targeted, and it already sets `EnableWindowsTargeting`, so the whole solution builds from Linux and macOS as well.
 
-- The project targets `net10.0-windows`.
-- On non-Windows systems, `dotnet build` can fail with `NETSDK1100` unless Windows targeting is enabled explicitly.
+## Installation Tutorials
 
-## Windows Installation Tutorials
+These instructions build and run the application from this repository.
 
-These instructions build and run the application from this repository. They apply to 64-bit Windows installations; use PowerShell or Windows Terminal.
+### Linux (Ubuntu / Debian)
+
+1. Install the [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0) and the GTK runtime:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y libgtk-3-0 librsvg2-common adwaita-icon-theme
+   ```
+
+2. Clone, build and run:
+
+   ```bash
+   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
+   cd ForamEcoQS.EtoForms
+   dotnet run --project src/ForamEcoQS.Gtk -c Release
+   ```
+
+### macOS (Intel and Apple Silicon)
+
+1. Install the [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0).
+2. Clone, build and run:
+
+   ```bash
+   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
+   cd ForamEcoQS.EtoForms
+   dotnet run --project src/ForamEcoQS.Mac -c Release
+   ```
+
+   `./build/publish.sh osx-arm64` (or `osx-x64`) additionally produces a double-clickable `ForamEcoQS.app` bundle under `artifacts/`.
 
 ### Windows 11
 
@@ -268,8 +333,8 @@ These instructions build and run the application from this repository. They appl
 2. Clone the repository and enter its directory:
 
    ```powershell
-   git clone https://github.com/uniurbit/ForamEcoQS.git
-   cd ForamEcoQS
+   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
+   cd ForamEcoQS.EtoForms
    ```
 
 3. Confirm that an SDK in the `10.0.x` series is available:
@@ -283,7 +348,7 @@ These instructions build and run the application from this repository. They appl
    ```powershell
    dotnet restore ForamEcoQS.sln
    dotnet build ForamEcoQS.sln -c Release
-   dotnet run --project ForamEcoQS -c Release
+   dotnet run --project src\ForamEcoQS.Wpf -c Release
    ```
 
 ### Windows 10
@@ -302,57 +367,54 @@ For users who only need to run a future packaged release, install the matching .
 
 ## Build
 
-Standard build:
+The whole solution builds on any operating system:
 
 ```bash
 dotnet restore ForamEcoQS.sln
 dotnet build ForamEcoQS.sln -c Release
 ```
 
-On non-Windows systems:
-
-```bash
-dotnet build ForamEcoQS.sln -c Release -p:EnableWindowsTargeting=true
-```
-
-This can build the Windows-targeted application, but GUI execution is still intended for Windows.
-
 ## Run
 
 ### Run the GUI
 
+Pick the head that matches your operating system:
+
 ```bash
-dotnet run --project ForamEcoQS
+dotnet run --project src/ForamEcoQS.Gtk    # Linux
+dotnet run --project src/ForamEcoQS.Mac    # macOS
+dotnet run --project src/ForamEcoQS.Wpf    # Windows
 ```
 
 If no command-line arguments are passed, the application starts in GUI mode, shows the splash screen, and then opens the main window.
 
-### Create and Run a Standalone Windows Executable
+### Create a Standalone Build
 
-To run the application without `dotnet run` (and without installing the .NET runtime on the destination PC), publish a self-contained executable. Run this command from the repository root on a 64-bit Windows machine:
+`build/publish.sh` publishes any supported target into `artifacts/<rid>/`:
 
-```powershell
-dotnet publish ForamEcoQS\ForamEcoQS.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\publish\win-x64
+```bash
+./build/publish.sh                 # every target
+./build/publish.sh linux-arm64     # or a specific runtime identifier
 ```
 
-The generated application is `publish\win-x64\ForamEcoQS.exe`. Start the graphical interface directly with:
+Supported runtime identifiers: `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, `win-arm64`.
+For macOS targets the script also assembles a `ForamEcoQS.app` bundle next to the published files.
 
-```powershell
-.\publish\win-x64\ForamEcoQS.exe
-```
+To distribute a build, copy the complete `artifacts/<rid>` directory, not only the executable: the bundled
+`.csv` and `.xls` reference databanks in that directory are required for indices that use reference lists.
 
-To distribute it, copy the complete `publish\win-x64` directory, not only the `.exe`: the bundled `.csv` and `.xls` reference databanks in that directory are required for indices that use reference lists. For a 32-bit destination, replace `win-x64` with `win-x86` in both the publish command and output path.
+The published executable accepts the same CLI arguments as `dotnet run`. For example:
 
-The executable also accepts the same CLI arguments as `dotnet run`. For example:
-
-```powershell
-.\publish\win-x64\ForamEcoQS.exe -i "C:\Data\input.xlsx" -index=all -list jorissen -o "C:\Data\results.xlsx" -mud=50
+```bash
+./artifacts/linux-x64/ForamEcoQS -i ~/data/input.xlsx -index=all -list jorissen -o ~/data/results.xlsx -mud=50
 ```
 
 ### Run the CLI
 
+The command line runs on every platform and never initialises a UI toolkit:
+
 ```bash
-dotnet run --project ForamEcoQS -- -i INPUT_FILE [options]
+dotnet run --project src/ForamEcoQS.Gtk -- -i INPUT_FILE [options]
 ```
 
 Supported options:
@@ -363,6 +425,8 @@ Supported options:
 - `-o OUTPUT_FILE`
 - `-mud=VALUE`
 - `-worms` (verify species not found in the reference databank against the WoRMS online database; requires internet access)
+- `-transpose` (force transposing the input, for files with species in columns and samples in rows)
+- `-no-transpose` (never transpose the input, even when it looks the wrong way round)
 - `-help`
 - `--help`
 - `/?`
@@ -399,13 +463,13 @@ Accepted index names in `-index=`:
 Example:
 
 ```bash
-dotnet run --project ForamEcoQS -- -i data.xlsx -index=all -list jorissen -o results.xlsx -mud=50
+dotnet run --project src/ForamEcoQS.Gtk -- -i data.xlsx -index=all -list jorissen -o results.xlsx -mud=50
 ```
 
 Example with WoRMS verification of unmatched species:
 
 ```bash
-dotnet run --project ForamEcoQS -- -i data.xlsx -index=all -list jorissen -o results.xlsx -worms
+dotnet run --project src/ForamEcoQS.Gtk -- -i data.xlsx -index=all -list jorissen -o results.xlsx -worms
 ```
 
 ## Worked CLI Verification Example
@@ -422,8 +486,8 @@ Use this small, deterministic example to verify that the CLI, input parsing, and
 
 2. From the repository root, run:
 
-   ```powershell
-   dotnet run --project ForamEcoQS -c Release -- -i .\verification-input.xlsx "-index=Species Richness (S),Total Abundance (N)" -o .\verification-results.xlsx
+   ```bash
+   dotnet run --project src/ForamEcoQS.Gtk -c Release -- -i ./verification-input.xlsx "-index=Species Richness (S),Total Abundance (N)" -o ./verification-results.xlsx
    ```
 
 3. The command must finish with `Results saved.` and `Done.`. Open the `Results` worksheet in `verification-results.xlsx` and verify these values:
@@ -451,10 +515,10 @@ CLI mode supports Excel `.xls` and `.xlsx` files and reads the first worksheet. 
 | --- | --- | --- |
 | `dotnet` is not recognized | The SDK is not installed or the current terminal has an outdated `PATH`. | Install the .NET 10 SDK, close every terminal window, open a new PowerShell window, and run `dotnet --info`. |
 | `NETSDK1045` or an error saying `net10.0-windows` is unsupported | An older SDK is being used. | Install .NET 10 SDK and ensure `dotnet --list-sdks` shows `10.0.x`. Remove or update any repository/user `global.json` that pins an older SDK. |
-| `NETSDK1100` on macOS or Linux | The project is Windows-targeted. | Build with `-p:EnableWindowsTargeting=true`; run the WinForms GUI on Windows. |
+| `Unable to load shared library 'libgtk-3.so.0'` on Linux | The GTK 3 runtime is missing. | `sudo apt-get install -y libgtk-3-0 librsvg2-common adwaita-icon-theme` (or the equivalent for your distribution). |
 | `Error: Input file ... not found` | The `-i` path is incorrect or not quoted. | Use an absolute path or quote a path containing spaces, for example `-i "C:\Data\input file.xlsx"`. |
 | `Error: Input file is empty or invalid` | The file is not a readable Excel workbook, has no rows, or its first worksheet has no header row. | Save the data as `.xls` or `.xlsx`, place species names in the first column, and include a header row. |
-| `Error: Could not load reference databank` | The list name is invalid or the application is not run from its build/project output. | Use one of the documented list names (for example `jorissen`) and run with `dotnet run --project ForamEcoQS` so bundled data files are copied to the output directory. |
+| `Error: Could not load reference databank` | The list name is invalid or the application is not run from its build/project output. | Use one of the documented list names (for example `jorissen`) and run with `dotnet run --project src/ForamEcoQS.Gtk` (or the head for your platform) so bundled data files are copied to the output directory. |
 | Excel export fails because the file is in use | `results.xlsx` is open in Excel or another application. | Close the file, choose a different output name, and rerun the command. |
 
 ## Output and Exports
@@ -481,7 +545,7 @@ The application includes:
 
 ## Notes and Limitations
 
-- The GUI is Windows-oriented because the project is a Windows Forms application.
+- The GUI runs on Windows, Linux and macOS through Eto.Forms; each platform uses its own native widget set, so small visual differences between platforms are expected.
 - Some indices depend on the selected databank and species classification coverage.
 - TSI-Med depends on mud percentage and the selected reference curve.
 - FoRAM Index is mainly meaningful for tropical or subtropical reef settings; the software warns when too little of a sample's assemblage matches a FoRAM functional group for the index to be meaningful.

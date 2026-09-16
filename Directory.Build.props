@@ -1,0 +1,22 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- Version info shared by every project (used by the update checker and the About box) -->
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <Company>University of Urbino Carlo Bo</Company>
+    <Copyright>MIT License - ForamEcoQS authors</Copyright>
+    <Product>ForamEcoQS</Product>
+
+    <!-- The original WinForms project suppressed these; the ported code keeps the same style. -->
+    <NoWarn>$(NoWarn);CS0618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8622;CS8625;CS0169;CS0414;CA1416</NoWarn>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,80 @@
+name: build
+
+on:
+  push:
+    branches: [main, 'eto/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # One job builds and publishes every desktop target. The GTK and macOS heads are
+  # plain .NET executables, so they cross-publish from any host; the Windows head
+  # needs EnableWindowsTargeting, which the project already sets.
+  desktop:
+    name: ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64,   os: ubuntu-latest }
+          - { rid: linux-arm64, os: ubuntu-latest }
+          - { rid: osx-x64,     os: macos-latest }
+          - { rid: osx-arm64,   os: macos-latest }
+          - { rid: win-x64,     os: windows-latest }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ForamEcoQS.sln
+
+      - name: Build
+        run: dotnet build ForamEcoQS.sln -c Release --no-restore --nologo
+
+      - name: Publish ${{ matrix.rid }}
+        shell: bash
+        run: ./build/publish.sh ${{ matrix.rid }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ForamEcoQS-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}
+          if-no-files-found: error
+
+  # Headless smoke test: the GTK build has to start, render and shut down cleanly.
+  linux-ui-smoke:
+    name: linux ui smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install GTK runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-0 librsvg2-common adwaita-icon-theme shared-mime-info xvfb
+
+      - name: Build GTK head
+        run: dotnet build src/ForamEcoQS.Gtk/ForamEcoQS.Gtk.csproj -c Release --nologo
+
+      - name: Launch under Xvfb
+        run: |
+          xvfb-run -a --server-args="-screen 0 1440x900x24" \
+            timeout 25 ./src/ForamEcoQS.Gtk/bin/Release/net10.0/ForamEcoQS || exit_code=$?
+          # 124 is the expected timeout kill: the app stayed up for the whole window.
+          if [ "${exit_code:-0}" != "124" ] && [ "${exit_code:-0}" != "0" ]; then
+            echo "app exited unexpectedly with ${exit_code}"
+            exit 1
+          fi
+
+      - name: Command line runner help
+        run: dotnet ./src/ForamEcoQS.Gtk/bin/Release/net10.0/ForamEcoQS.dll --help
