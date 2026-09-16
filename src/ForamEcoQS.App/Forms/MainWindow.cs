@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -54,6 +55,9 @@ namespace ForamEcoQS
         private double _fsiRefValue = 10.0;
         private double _expHbcRefValue = 20.0;
         private bool _useWormsVerification;
+
+        /// <summary>Decimals kept when a sample column is normalized to 100%.</summary>
+        private const int NormalizedDecimals = 2;
 
         private readonly string[] _databankOptions =
         {
@@ -1327,14 +1331,50 @@ namespace ForamEcoQS
 
                 if (columnSum > 0)
                 {
-                    foreach (var row in _dataGridView.Rows)
-                    {
-                        if (double.TryParse(row.Cells[colIndex].Value?.ToString(), out double value))
-                        {
-                            row.Cells[colIndex].Value = value / columnSum * 100;
-                        }
-                    }
+                    NormalizeColumn(colIndex, columnSum);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Rewrites one sample column as percentages rounded to two decimals. Rounding each value
+        /// on its own would leave the column summing to something like 99.99, so the rounding
+        /// error is put back on the largest value: the column the user reads adds up to 100.
+        /// </summary>
+        private void NormalizeColumn(int columnIndex, double columnSum)
+        {
+            var values = new List<(DataGridViewRow Row, double Percent)>();
+
+            foreach (var row in _dataGridView.Rows)
+            {
+                if (double.TryParse(row.Cells[columnIndex].Value?.ToString(), out double value))
+                {
+                    values.Add((row, Math.Round(value / columnSum * 100, NormalizedDecimals)));
+                }
+            }
+
+            if (values.Count == 0)
+            {
+                return;
+            }
+
+            int largest = 0;
+            for (int i = 1; i < values.Count; i++)
+            {
+                if (values[i].Percent > values[largest].Percent)
+                {
+                    largest = i;
+                }
+            }
+
+            double residual = 100 - values.Sum(v => v.Percent);
+            values[largest] = (values[largest].Row,
+                Math.Round(values[largest].Percent + residual, NormalizedDecimals));
+
+            foreach (var (row, percent) in values)
+            {
+                row.Cells[columnIndex].Value = percent.ToString("F" + NormalizedDecimals,
+                    CultureInfo.CurrentCulture);
             }
         }
 
