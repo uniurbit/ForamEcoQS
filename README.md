@@ -279,7 +279,7 @@ Interpretation:
 ## Requirements
 
 - [`.NET 10 SDK`](https://dotnet.microsoft.com/download/dotnet/10.0) for build and run from source. Confirm the installation with `dotnet --list-sdks`; a `10.0.x` entry is required.
-- For a packaged release, the matching [.NET 10 runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (Desktop Runtime on Windows).
+- Packaged releases include the .NET runtime; no separate .NET installation is required.
 - On Linux, GTK 3 must be present: `libgtk-3-0` plus `librsvg2-common` and `adwaita-icon-theme` for correct icon rendering.
 - Bundled reference `.csv` and `.xls` files available at runtime (they are copied next to the executable automatically).
 
@@ -363,7 +363,7 @@ These instructions build and run the application from this repository.
    The output must list a `10.0.x` SDK.
 3. Follow steps 2–4 in the Windows 11 tutorial above. The commands and expected behavior are identical on Windows 10.
 
-For users who only need to run a future packaged release, install the matching .NET Desktop Runtime rather than the SDK. Building from this source repository always requires the SDK.
+Packaged Windows releases include the .NET Desktop Runtime. Building from this source repository requires the SDK.
 
 ## Build
 
@@ -390,7 +390,7 @@ If no command-line arguments are passed, the application starts in GUI mode, sho
 
 ### Create a Standalone Build
 
-`build/publish.sh` publishes any supported target into `artifacts/<rid>/`:
+`build/publish.sh` publishes any supported target with its .NET runtime into `artifacts/<rid>/`:
 
 ```bash
 ./build/publish.sh                 # every target
@@ -412,8 +412,9 @@ no separate .NET installation is required for these macOS packages.
 These packages are not Developer ID signed or notarized.
 
 The GitHub Actions `build` workflow runs **only manually**, through **Actions > build > Run workflow**.
-It does not run on pushes or pull requests. A manual run builds all configured platforms and uploads
-the macOS ZIP archives, with checks for bundle structure, architecture and native CLI startup.
+It does not run on pushes or pull requests. A manual run builds and tests Windows x64, Linux x64/ARM64
+and macOS Intel/Apple Silicon on matching runners. It uploads Windows/macOS ZIP archives and Linux
+tar archives, with checks for bundle structure, architecture, CLI calculations and Linux GUI startup.
 Local packaging does not use GitHub Actions.
 
 For Windows and Linux, distribute the complete `artifacts/<rid>` directory, not only the executable: the bundled

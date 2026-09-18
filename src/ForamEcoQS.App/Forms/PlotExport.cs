@@ -60,7 +60,8 @@ namespace ForamEcoQS
                     graphics.DrawImage(tile, column * cellWidth, row * cellHeight);
                 }
 
-                graphics.Flush();
+                // Dispose commits the drawing; an explicit Flush followed by
+                // Dispose overwrites it with an empty bitmap on WPF.
             }
 
             return composite;

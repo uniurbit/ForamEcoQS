@@ -52,7 +52,9 @@ namespace ForamEcoQS
             bool useWormsVerification = false)
         {
             Title = "Index Calculation Settings";
-            ClientSize = new Size(560, 720);
+            ClientSize = new Size(820, 720);
+            MinimumSize = new Size(760, 480);
+            Resizable = true;
             this.Prepare();
 
             // ============ FORAM-AMBI THRESHOLDS ============
@@ -65,7 +67,7 @@ namespace ForamEcoQS
             {
                 Text = GetFAMBIDescription(FAMBIThresholdType.Borja2003),
                 Font = SystemFonts.Default(8.5f),
-                Height = 60
+                Wrap = WrapMode.Word
             };
 
             _fambiThresholdCombo.SelectedIndexChanged += (s, e) =>
@@ -83,8 +85,7 @@ namespace ForamEcoQS
                     Spacing = new Size(6, 6),
                     Rows =
                     {
-                        new TableRow(new Label { Text = "Threshold System:", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_fambiThresholdCombo, true)),
+                        SettingRow("Threshold System:", _fambiThresholdCombo),
                         new TableRow(new TableCell(_fambiDescLabel, true) { }) { }
                     }
                 }
@@ -110,7 +111,7 @@ namespace ForamEcoQS
             {
                 Text = GetTSIDescription(TSIReferenceType.Barras2014_150um),
                 Font = SystemFonts.Default(8.5f),
-                Height = 60
+                Wrap = WrapMode.Word
             };
 
             _tsiReferenceCombo.SelectedIndexChanged += (s, e) =>
@@ -138,12 +139,10 @@ namespace ForamEcoQS
                     Spacing = new Size(6, 6),
                     Rows =
                     {
-                        new TableRow(new Label { Text = "Reference Curve:", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_tsiReferenceCombo, true)),
-                        new TableRow(new TableCell(_jorissenListCheckbox, true), null),
-                        new TableRow(new Label { Text = "EQS Threshold Scale:", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_tsiThresholdCombo, true)),
-                        new TableRow(new TableCell(_tsiDescLabel, true), null)
+                        SettingRow("Reference Curve:", _tsiReferenceCombo),
+                        new TableRow(new TableCell(_jorissenListCheckbox, true)),
+                        SettingRow("EQS Threshold Scale:", _tsiThresholdCombo),
+                        new TableRow(new TableCell(_tsiDescLabel, true))
                     }
                 }
             };
@@ -192,19 +191,17 @@ namespace ForamEcoQS
                     Spacing = new Size(6, 6),
                     Rows =
                     {
-                        new TableRow(new Label { Text = "exp(H'bc) threshold set:", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_expHbcThresholdCombo, true)),
-                        new TableRow(new TableCell(_calculateEqrCheckbox, true), null),
-                        new TableRow(new Label { Text = "FSI Reference Value (max):", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_fsiRefNumeric, true)),
-                        new TableRow(new Label { Text = "exp(H'bc) Reference Value:", VerticalAlignment = VerticalAlignment.Center },
-                                     new TableCell(_expHbcRefNumeric, true)),
+                        SettingRow("exp(H'bc) threshold set:", _expHbcThresholdCombo),
+                        new TableRow(new TableCell(_calculateEqrCheckbox, true)),
+                        SettingRow("FSI Reference Value (max):", _fsiRefNumeric),
+                        SettingRow("exp(H'bc) Reference Value:", _expHbcRefNumeric),
                         new TableRow(new TableCell(new Label
                         {
                             Text = "EQR = Observed / Reference\n" +
                                    "EQS: 0-0.2 Bad, 0.2-0.4 Poor, 0.4-0.6 Moderate, 0.6-0.8 Good, 0.8-1.0 High",
-                            Font = SystemFonts.Default(8f)
-                        }, true), null)
+                            Font = SystemFonts.Default(8f),
+                            Wrap = WrapMode.Word
+                        }, true))
                     }
                 }
             };
@@ -232,7 +229,8 @@ namespace ForamEcoQS
                         {
                             Text = "Requires an internet connection. Species not found in the loaded databank are looked up\n" +
                                    "at marinespecies.org to confirm they are valid marine taxa and to suggest the accepted name.",
-                            Font = SystemFonts.Default(8f)
+                            Font = SystemFonts.Default(8f),
+                            Wrap = WrapMode.Word
                         })
                     }
                 }
@@ -278,6 +276,7 @@ namespace ForamEcoQS
             Content = new Scrollable
             {
                 Border = BorderType.None,
+                ExpandContentWidth = true,
                 Content = new TableLayout
                 {
                     Padding = new Padding(15),
@@ -299,6 +298,22 @@ namespace ForamEcoQS
                     }
                 }
             };
+        }
+
+        // Keep field columns inside their own row so full-width descriptions and
+        // checkboxes do not enlarge the label column and push the editor off-screen.
+        private static TableRow SettingRow(string caption, Control editor)
+        {
+            return new TableRow(new TableCell(new TableLayout
+            {
+                Spacing = new Size(10, 0),
+                Rows =
+                {
+                    new TableRow(
+                        new Label { Text = caption, Width = 190, VerticalAlignment = VerticalAlignment.Center },
+                        new TableCell(editor, true))
+                }
+            }, true));
         }
 
         private void JorissenListCheckbox_CheckedChanged(object sender, EventArgs e)

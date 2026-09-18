@@ -21,6 +21,13 @@ namespace ForamEcoQS
             ClientSize = new Size(500, 300);
             BackgroundColor = Colors.White;
 
+            // There is no main window to act as an owner during startup.
+            // Position explicitly, using Eto screen coordinates (including DPI scaling).
+            var workingArea = (Screen.FromPoint(Mouse.Position) ?? Screen.PrimaryScreen).WorkingArea;
+            Location = new Point(
+                (int)(workingArea.X + (workingArea.Width - ClientSize.Width) / 2),
+                (int)(workingArea.Y + (workingArea.Height - ClientSize.Height) / 2));
+
             var logo = AppResources.Logo;
             Content = logo != null
                 ? new ImageView { Image = logo, Size = new Size(500, 300) }

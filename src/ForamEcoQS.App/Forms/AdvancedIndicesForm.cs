@@ -177,6 +177,7 @@ namespace ForamEcoQS
 
             _tabControl = new TabControl
             {
+                Style = "advanced-results-tabs",
                 Pages =
                 {
                     new TabPage { Text = "Results Data", Content = _dataGridIndices },
@@ -2964,7 +2965,8 @@ where both indices assigned the same EQS class.";
                 g.DrawText(labelFont, Colors.Black, -legendTitleSize.Width / 2, 0, legendTitle);
                 g.RestoreTransform();
 
-                g.Flush();
+                // Dispose commits the bitmap. On WPF, Flush reopens an empty
+                // drawing context which Dispose would then save over the heatmap.
             }
 
             return bitmap;

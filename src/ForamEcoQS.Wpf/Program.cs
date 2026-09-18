@@ -10,6 +10,7 @@ namespace ForamEcoQS.Wpf
         [STAThread]
         private static int Main(string[] args)
         {
+            PlatformStyles.Register();
             return AppRunner.Run(args, new Eto.Wpf.Platform());
         }
     }

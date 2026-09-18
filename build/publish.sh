@@ -85,7 +85,7 @@ for rid in "${RIDS[@]}"; do
   rm -rf "$out"
 
   publish_dir="$out"
-  publish_options=(--self-contained false)
+  publish_options=(--self-contained true)
   if [[ "$rid" == osx-* ]]; then
     # Publish directly into the final bundle, including the runtime and reference data.
     # Disable Eto's second bundler so it cannot create nested or duplicate .app folders.

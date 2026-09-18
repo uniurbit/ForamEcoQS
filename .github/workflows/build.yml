@@ -3,6 +3,9 @@ name: build
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # One job builds and publishes every desktop target. The GTK and macOS heads are
   # plain .NET executables, so they cross-publish from any host; the Windows head
@@ -14,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { rid: linux-x64,   os: ubuntu-latest }
-          - { rid: linux-arm64, os: ubuntu-latest }
-          - { rid: osx-x64,     os: macos-latest }
-          - { rid: osx-arm64,   os: macos-latest }
+          - { rid: linux-x64,   os: ubuntu-24.04 }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm }
+          - { rid: osx-x64,     os: macos-15-intel }
+          - { rid: osx-arm64,   os: macos-15 }
           - { rid: win-x64,     os: windows-latest }
 
     steps:
@@ -37,12 +40,35 @@ jobs:
         shell: bash
         run: ./build/publish.sh ${{ matrix.rid }}
 
-      - uses: actions/upload-artifact@v4
-        if: ${{ !startsWith(matrix.rid, 'osx-') }}
-        with:
-          name: ForamEcoQS-${{ matrix.rid }}
-          path: artifacts/${{ matrix.rid }}
-          if-no-files-found: error
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-0 libnotify4 librsvg2-common adwaita-icon-theme shared-mime-info xvfb
+
+      - name: Verify published CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          case '${{ matrix.rid }}' in
+            osx-*) executable="artifacts/${{ matrix.rid }}/ForamEcoQS.app/Contents/MacOS/ForamEcoQS" ;;
+            win-*) executable="artifacts/${{ matrix.rid }}/ForamEcoQS.exe" ;;
+            *) executable="artifacts/${{ matrix.rid }}/ForamEcoQS" ;;
+          esac
+          "$executable" --help
+          "$executable" -i tests/data/tutorial_samples.xlsx -list jorissen -o artifacts/cli-smoke.xlsx
+          test -s artifacts/cli-smoke.xlsx
+
+      - name: Verify published Linux GUI
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          exit_code=0
+          xvfb-run -a --server-args="-screen 0 1440x900x24" \
+            timeout 15 "artifacts/${{ matrix.rid }}/ForamEcoQS" || exit_code=$?
+          test "$exit_code" = 124
 
       - name: Validate macOS bundle and archive
         if: startsWith(matrix.rid, 'osx-')
@@ -67,13 +93,38 @@ jobs:
             "$bundle/Contents/MacOS/ForamEcoQS" --help
           fi
 
-      - name: Upload macOS app archive
-        if: startsWith(matrix.rid, 'osx-')
+      - name: Package Linux release
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          version=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' Directory.Build.props | head -1)
+          mkdir -p artifacts/release
+          tar -czf "artifacts/release/ForamEcoQS-v$version-${{ matrix.rid }}.tar.gz" -C "artifacts/${{ matrix.rid }}" .
+
+      - name: Package Windows release
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content Directory.Build.props
+          $version = $props.Project.PropertyGroup.Version
+          New-Item -ItemType Directory -Force artifacts/release | Out-Null
+          Compress-Archive -Path artifacts/win-x64/* -DestinationPath "artifacts/release/ForamEcoQS-v$version-win-x64-self-contained.zip"
+
+      - name: Package macOS release
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' Directory.Build.props | head -1)
+          mkdir -p artifacts/release
+          cp "artifacts/${{ matrix.rid }}/ForamEcoQS-${{ matrix.rid }}.zip" "artifacts/release/ForamEcoQS-v$version-${{ matrix.rid }}.zip"
+
+      - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
           name: ForamEcoQS-${{ matrix.rid }}
-          path: artifacts/${{ matrix.rid }}/ForamEcoQS-${{ matrix.rid }}.zip
+          path: artifacts/release/*
           if-no-files-found: error
+          retention-days: 7
 
   # Headless smoke test: the GTK build has to start, render and shut down cleanly.
   linux-ui-smoke:
