@@ -88,9 +88,21 @@ jobs:
             osx-x64) arch=x86_64 ;;
             osx-arm64) arch=arm64 ;;
           esac
-          lipo -verify_arch "$arch" "$bundle/Contents/MacOS/ForamEcoQS"
+          lipo "$bundle/Contents/MacOS/ForamEcoQS" -verify_arch "$arch"
           if [[ "$(uname -m)" == "$arch" ]]; then
             "$bundle/Contents/MacOS/ForamEcoQS" --help
+            "$bundle/Contents/MacOS/ForamEcoQS" > "$RUNNER_TEMP/mac-gui.log" 2>&1 &
+            app_pid=$!
+            trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+            sleep 12
+            if ! kill -0 "$app_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/mac-gui.log"
+              echo "macOS application exited during startup"
+              exit 1
+            fi
+            kill "$app_pid"
+            wait "$app_pid" || true
+            trap - EXIT
           fi
 
       - name: Package Linux release
