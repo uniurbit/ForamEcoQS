@@ -21,6 +21,12 @@ namespace ForamEcoQS
         {
             try
             {
+                if (args.Any(arg => arg == "-help" || arg == "--help" || arg == "/?"))
+                {
+                    ShowHelp();
+                    return 0;
+                }
+
                 Log("Starting CLI Runner...");
                 var options = ParseArguments(args);
                 Log("Arguments parsed.");

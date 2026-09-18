@@ -10,6 +10,7 @@ publish/
 .idea/
 *.user
 *.suo
+*.stackdump
 
 # OS
 .DS_Store

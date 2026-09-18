@@ -1,9 +1,6 @@
 name: build
 
 on:
-  push:
-    branches: [main, 'eto/**']
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -41,9 +38,41 @@ jobs:
         run: ./build/publish.sh ${{ matrix.rid }}
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(matrix.rid, 'osx-') }}
         with:
           name: ForamEcoQS-${{ matrix.rid }}
           path: artifacts/${{ matrix.rid }}
+          if-no-files-found: error
+
+      - name: Validate macOS bundle and archive
+        if: startsWith(matrix.rid, 'osx-')
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="artifacts/${{ matrix.rid }}/ForamEcoQS-${{ matrix.rid }}.zip"
+          extracted="$RUNNER_TEMP/bundle-${{ matrix.rid }}"
+          ditto -x -k "$archive" "$extracted"
+          bundle="$extracted/ForamEcoQS.app"
+          plutil -lint "$bundle/Contents/Info.plist"
+          test -x "$bundle/Contents/MacOS/ForamEcoQS"
+          test -f "$bundle/Contents/MacOS/libcoreclr.dylib"
+          test -f "$bundle/Contents/MacOS/jorissen.xls"
+          test -f "$bundle/Contents/Resources/Icon.icns"
+          case '${{ matrix.rid }}' in
+            osx-x64) arch=x86_64 ;;
+            osx-arm64) arch=arm64 ;;
+          esac
+          lipo -verify_arch "$arch" "$bundle/Contents/MacOS/ForamEcoQS"
+          if [[ "$(uname -m)" == "$arch" ]]; then
+            "$bundle/Contents/MacOS/ForamEcoQS" --help
+          fi
+
+      - name: Upload macOS app archive
+        if: startsWith(matrix.rid, 'osx-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForamEcoQS-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}/ForamEcoQS-${{ matrix.rid }}.zip
           if-no-files-found: error
 
   # Headless smoke test: the GTK build has to start, render and shut down cleanly.

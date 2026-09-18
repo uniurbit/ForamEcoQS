@@ -309,8 +309,8 @@ These instructions build and run the application from this repository.
 2. Clone, build and run:
 
    ```bash
-   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
-   cd ForamEcoQS.EtoForms
+   git clone https://github.com/uniurbit/ForamEcoQS.git
+   cd ForamEcoQS
    dotnet run --project src/ForamEcoQS.Gtk -c Release
    ```
 
@@ -320,8 +320,8 @@ These instructions build and run the application from this repository.
 2. Clone, build and run:
 
    ```bash
-   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
-   cd ForamEcoQS.EtoForms
+   git clone https://github.com/uniurbit/ForamEcoQS.git
+   cd ForamEcoQS
    dotnet run --project src/ForamEcoQS.Mac -c Release
    ```
 
@@ -333,8 +333,8 @@ These instructions build and run the application from this repository.
 2. Clone the repository and enter its directory:
 
    ```powershell
-   git clone https://github.com/mattemangia/ForamEcoQS.EtoForms.git
-   cd ForamEcoQS.EtoForms
+   git clone https://github.com/uniurbit/ForamEcoQS.git
+   cd ForamEcoQS
    ```
 
 3. Confirm that an SDK in the `10.0.x` series is available:
@@ -398,9 +398,25 @@ If no command-line arguments are passed, the application starts in GUI mode, sho
 ```
 
 Supported runtime identifiers: `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `win-x64`, `win-arm64`.
-For macOS targets the script also assembles a `ForamEcoQS.app` bundle next to the published files.
+For macOS targets the script creates a self-contained `ForamEcoQS.app` bundle, including the .NET runtime, reference databanks and application icon:
 
-To distribute a build, copy the complete `artifacts/<rid>` directory, not only the executable: the bundled
+```bash
+./build/publish.sh osx-arm64 osx-x64
+```
+
+The bundles are written to `artifacts/osx-arm64/ForamEcoQS.app` (Apple Silicon) and
+`artifacts/osx-x64/ForamEcoQS.app` (Intel). On macOS, the script also creates a ZIP archive
+for each bundle, preserving executable permissions. Cross-publishing from Windows or Linux
+creates a `.tar.gz` archive instead. Extract the archive and copy `ForamEcoQS.app` into Applications;
+no separate .NET installation is required for these macOS packages.
+These packages are not Developer ID signed or notarized.
+
+The GitHub Actions `build` workflow runs **only manually**, through **Actions > build > Run workflow**.
+It does not run on pushes or pull requests. A manual run builds all configured platforms and uploads
+the macOS ZIP archives, with checks for bundle structure, architecture and native CLI startup.
+Local packaging does not use GitHub Actions.
+
+For Windows and Linux, distribute the complete `artifacts/<rid>` directory, not only the executable: the bundled
 `.csv` and `.xls` reference databanks in that directory are required for indices that use reference lists.
 
 The published executable accepts the same CLI arguments as `dotnet run`. For example:

@@ -20,27 +20,22 @@ fi
 
 project_for_rid() {
   case "$1" in
-    linux-*) echo "$ROOT/src/ForamEcoQS.Gtk/ForamEcoQS.Gtk.csproj" ;;
-    osx-*)   echo "$ROOT/src/ForamEcoQS.Mac/ForamEcoQS.Mac.csproj" ;;
-    win-*)   echo "$ROOT/src/ForamEcoQS.Wpf/ForamEcoQS.Wpf.csproj" ;;
+    linux-x64|linux-arm64) echo "$ROOT/src/ForamEcoQS.Gtk/ForamEcoQS.Gtk.csproj" ;;
+    osx-x64|osx-arm64)     echo "$ROOT/src/ForamEcoQS.Mac/ForamEcoQS.Mac.csproj" ;;
+    win-x64|win-arm64)     echo "$ROOT/src/ForamEcoQS.Wpf/ForamEcoQS.Wpf.csproj" ;;
     *)       echo "" ;;
   esac
 }
 
 make_app_bundle() {
-  local rid="$1" publish_dir="$2"
+  local rid="$1"
   local bundle="$ARTIFACTS/$rid/ForamEcoQS.app"
 
-  rm -rf "$bundle"
-  mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-
-  cp -R "$publish_dir/." "$bundle/Contents/MacOS/"
-  if [ -f "$ROOT/src/ForamEcoQS.App/Resources/favicon.ico" ]; then
-    cp "$ROOT/src/ForamEcoQS.App/Resources/favicon.ico" "$bundle/Contents/Resources/"
-  fi
+  mkdir -p "$bundle/Contents/Resources"
+  cp "$ROOT/src/ForamEcoQS.App/Resources/Icon.icns" "$bundle/Contents/Resources/"
 
   local version
-  version="$(grep -oP '(?<=<Version>)[^<]+' "$ROOT/Directory.Build.props" | head -1)"
+  version="$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' "$ROOT/Directory.Build.props" | head -1)"
 
   cat > "$bundle/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -54,15 +49,28 @@ make_app_bundle() {
     <key>CFBundleShortVersionString</key><string>${version}</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>CFBundleExecutable</key>      <string>ForamEcoQS</string>
+    <key>CFBundleIconFile</key>        <string>Icon.icns</string>
     <key>NSHighResolutionCapable</key> <true/>
-    <key>LSMinimumSystemVersion</key>  <string>11.0</string>
     <key>NSHumanReadableCopyright</key><string>MIT License - ForamEcoQS authors</string>
 </dict>
 </plist>
 PLIST
 
-  chmod +x "$bundle/Contents/MacOS/ForamEcoQS" 2>/dev/null || true
+  chmod +x "$bundle/Contents/MacOS/ForamEcoQS"
   echo "    bundle: $bundle"
+
+  # Archive the bundle before uploading it: raw CI artifacts lose executable permissions.
+  if [[ "$(uname -s)" == Darwin ]]; then
+    ditto -c -k --sequesterRsrc --keepParent "$bundle" "$ARTIFACTS/$rid/ForamEcoQS-$rid.zip"
+  else
+    # Windows filesystems may not retain chmod on the extensionless macOS launcher.
+    # Set its archive mode explicitly with GNU tar (Linux / Git Bash).
+    local archive="$ARTIFACTS/$rid/ForamEcoQS-$rid.tar"
+    local launcher="ForamEcoQS.app/Contents/MacOS/ForamEcoQS"
+    tar -cf "$archive" --mode=755 -C "$ARTIFACTS/$rid" "$launcher"
+    tar -rf "$archive" --exclude="$launcher" -C "$ARTIFACTS/$rid" ForamEcoQS.app
+    gzip -f "$archive"
+  fi
 }
 
 for rid in "${RIDS[@]}"; do
@@ -76,15 +84,24 @@ for rid in "${RIDS[@]}"; do
   echo "==> publishing $rid"
   rm -rf "$out"
 
+  publish_dir="$out"
+  publish_options=(--self-contained false)
+  if [[ "$rid" == osx-* ]]; then
+    # Publish directly into the final bundle, including the runtime and reference data.
+    # Disable Eto's second bundler so it cannot create nested or duplicate .app folders.
+    publish_dir="$out/ForamEcoQS.app/Contents/MacOS"
+    publish_options=(--self-contained true -p:MacBuildBundle=false -p:MacAutoPublishBundle=false)
+  fi
+
   dotnet publish "$project" \
     -c "$CONFIG" \
     -r "$rid" \
-    --self-contained false \
-    -o "$out" \
+    "${publish_options[@]}" \
+    -o "$publish_dir" \
     -v quiet --nologo
 
   if [[ "$rid" == osx-* ]]; then
-    make_app_bundle "$rid" "$out"
+    make_app_bundle "$rid"
   fi
 
   echo "    output: $out"
