@@ -1036,10 +1036,9 @@ namespace ForamEcoQS
             {
                 string value = e.Value.ToString();
                 e.CellStyle.BackColor = GetEQSColor(value);
-                e.CellStyle.ForeColor =
-                    value == "Bad" || value == "Poor" || value == "Unsuitable for coral growth"
-                        ? Colors.White
-                        : Colors.Black;
+                e.CellStyle.ForeColor = EqsClassificationPalette.UsesLightText(value)
+                    ? Colors.White
+                    : Colors.Black;
             }
 
             // Highlight approximation warnings
@@ -1096,15 +1095,9 @@ namespace ForamEcoQS
 
         private static Color GetEQSColor(string eqs)
         {
-            return eqs switch
-            {
-                "High" or "Suitable for coral growth" => Color.FromArgb(0, 128, 0),
-                "Good" => Color.FromArgb(144, 238, 144),
-                "Moderate" or "Marginal conditions" => Color.FromArgb(255, 255, 0),
-                "Poor" => Color.FromArgb(255, 165, 0),
-                "Bad" or "Unsuitable for coral growth" => Color.FromArgb(255, 0, 0),
-                _ => Colors.White
-            };
+            return EqsClassificationPalette.TryGetRgb(eqs, out int red, out int green, out int blue)
+                ? Color.FromArgb(red, green, blue)
+                : Colors.White;
         }
 
         #endregion
@@ -2171,6 +2164,15 @@ namespace ForamEcoQS
                     eqsSheet.Cell(i + 2, 8).Value = _allResults[i].BENTIX_EQS;
                     eqsSheet.Cell(i + 2, 9).Value = _allResults[i].BQI_EQS;
                     eqsSheet.Cell(i + 2, 10).Value = _allResults[i].FoRAM_Status;
+                }
+
+                for (int row = 2; row <= _allResults.Count + 1; row++)
+                {
+                    for (int column = 2; column <= 10; column++)
+                    {
+                        var cell = eqsSheet.Cell(row, column);
+                        EqsClassificationPalette.ApplyToExcelCell(cell, cell.GetString());
+                    }
                 }
 
                 AddKappaMatrixSheet(workbook);
